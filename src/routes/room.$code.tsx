@@ -140,11 +140,17 @@ function JoinGate({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const nick = nickname.trim();
-    if (nick.length < 2) return toast.error("Nickname needs at least 2 characters.");
+    if (nick.length < 2) {
+      toast.error("Nickname needs at least 2 characters.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await join({ data: { code: lobby.code, nickname: nick, team, guestId } });
-      if (!res.ok) return toast.error(res.reason);
+      if (!res.ok) {
+        toast.error(res.reason);
+        return;
+      }
       rememberNickname(nick);
       onJoined();
     } catch (err) {

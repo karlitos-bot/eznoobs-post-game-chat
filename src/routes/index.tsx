@@ -50,7 +50,10 @@ function Home() {
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     const nick = nickname.trim();
-    if (nick.length < 2) return toast.error("Nickname needs at least 2 characters.");
+    if (nick.length < 2) {
+      toast.error("Nickname needs at least 2 characters.");
+      return;
+    }
     setBusy(true);
     try {
       rememberNickname(nick);
@@ -66,7 +69,10 @@ function Home() {
   function onJoin(e: React.FormEvent) {
     e.preventDefault();
     const c = normalizeCode(code);
-    if (!CODE_RE.test(c)) return toast.error("Room codes are 5 characters, e.g. XEL34.");
+    if (!CODE_RE.test(c)) {
+      toast.error("Room codes are 5 characters, e.g. XEL34.");
+      return;
+    }
     navigate({ to: "/room/$code", params: { code: c } });
   }
 
