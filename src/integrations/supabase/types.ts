@@ -117,6 +117,51 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          lobby_id: string
+          message_id: string | null
+          reason: string
+          reported_guest_id: string
+          reporter_guest_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lobby_id: string
+          message_id?: string | null
+          reason: string
+          reported_guest_id: string
+          reporter_guest_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          message_id?: string | null
+          reason?: string
+          reported_guest_id?: string
+          reporter_guest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
