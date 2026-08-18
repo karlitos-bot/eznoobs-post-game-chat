@@ -173,3 +173,84 @@ export const getLobby = createServerFn({ method: "GET" })
     }
     return { ...lobby, joined };
   });
+
+export const reportMessage = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        code: codeSchema,
+        guestId: guestSchema,
+        messageId: z.string().uuid(),
+        reason: z.string().trim().min(1).max(200).default("Reported by a player"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: lobby } = await supabaseAdmin
+      .from("lobbies")
+      .select("id")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!lobby) throw new Error("Lobby not found.");
+    const { data: msg } = await supabaseAdmin
+      .from("messages")
+      .select("id, guest_id")
+      .eq("id", data.messageId)
+      .eq("lobby_id", lobby.id)
+      .maybeSingle();
+    if (!msg) throw new Error("Message not found.");
+    const { error } = await supabaseAdmin.from("reports").insert({
+      lobby_id: lobby.id,
+      message_id: msg.id,
+      reporter_guest_id: data.guestId,
+      reported_guest_id: msg.guest_id,
+      reason: data.reason,
+    });
+    if (error && error.code !== "23505") throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const touchPresence = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: lobby } = await supabaseAdmin
+      .from("lobbies")
+      .select("id")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!lobby) return { ok: false };
+    await supabaseAdmin
+      .from("participants")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("lobby_id", lobby.id)
+      .eq("guest_id", data.guestId);
+    return { ok: true };
+  });
+
+const unusedGetLobby = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ code: codeSchema, guestId: guestSchema.optional() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: lobby } = await supabaseAdmin
+      .from("lobbies")
+      .select("id, code, game, created_at, expires_at, last_activity_at")
+      .eq("code", data.code)
+      .maybeSingle();
+    if (!lobby) return null;
+    let joined = false;
+    if (data.guestId) {
+      const { data: p } = await supabaseAdmin
+        .from("participants")
+        .select("id")
+        .eq("lobby_id", lobby.id)
+        .eq("guest_id", data.guestId)
+        .maybeSingle();
+      joined = Boolean(p);
+    }
+    return { ...lobby, joined };
+  });
+void unusedGetLobby;
