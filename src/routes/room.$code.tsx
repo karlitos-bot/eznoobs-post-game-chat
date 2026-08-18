@@ -2,12 +2,18 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Check, Users, X, VolumeX, Volume2 } from "lucide-react";
+import { Copy, Check, Users, X, VolumeX, Volume2, Flag } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
-import { getLobby, joinLobby, sendMessage } from "@/lib/lobby.functions";
+import {
+  getLobby,
+  joinLobby,
+  sendMessage,
+  reportMessage,
+  touchPresence,
+} from "@/lib/lobby.functions";
 import {
   TEAMS,
   type Team,
@@ -221,6 +227,8 @@ function JoinGate({
 
 function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const send = useServerFn(sendMessage);
+  const report = useServerFn(reportMessage);
+  const heartbeat = useServerFn(touchPresence);
   const [messages, setMessages] = useState<Message[]>([]);
   const [players, setPlayers] = useState<Participant[]>([]);
   const [draft, setDraft] = useState("");
@@ -293,6 +301,13 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }, []);
 
   useEffect(() => {
+    if (!guestId) return;
+    const ping = () => void heartbeat({ data: { code: lobby.code, guestId } }).catch(() => {});
+    const t = setInterval(ping, 60_000);
+    return () => clearInterval(t);
+  }, [guestId, lobby.code, heartbeat]);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
@@ -321,11 +336,16 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }, [messages]);
 
   const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
+  const expired = new Date(expiresAt).getTime() <= now;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
     if (!body) return;
+    if (expired) {
+      toast.error("This lobby has expired.");
+      return;
+    }
     setDraft("");
     try {
       await send({ data: { code: lobby.code, guestId, body: body.slice(0, 500) } });
@@ -363,7 +383,9 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             <span className="inline-block size-1.5 animate-pulse bg-primary" /> Live
           </span>
           <span className="hud-label hidden md:inline">Salt: {salt}</span>
-          <span className="hud-label hidden lg:inline">Expires in ~{minutesLeft}m idle</span>
+          <span className="hud-label hidden lg:inline">
+            {expired ? "Expired" : `Expires in ~${minutesLeft}m idle`}
+          </span>
           <button
             onClick={() => setShowPlayers(true)}
             className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground lg:hidden"
@@ -403,7 +425,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               {visible.map((m) => {
                 const tc = teamClasses(m.team);
                 return (
-                  <div key={m.id} className="msg-in flex gap-3 text-sm">
+                  <div key={m.id} className="msg-in group/msg flex gap-3 text-sm">
                     <span className="hud-label mt-1 w-11 shrink-0 text-right">
                       {new Date(m.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -418,6 +440,22 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                         )}
                       </span>
                       <p className="break-words text-foreground/90">{m.body}</p>
+                      {m.guest_id !== guestId && (
+                        <button
+                          type="button"
+                          aria-label={`Report message from ${m.nickname}`}
+                          onClick={() =>
+                            report({
+                              data: { code: lobby.code, guestId, messageId: m.id, reason: "abuse" },
+                            })
+                              .then(() => toast.success("Reported. Thanks."))
+                              .catch(() => toast.error("Could not report that message."))
+                          }
+                          className="mt-1 hidden items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-destructive group-hover/msg:flex"
+                        >
+                          <Flag className="size-3" /> Report
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -432,11 +470,15 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                 value={draft}
                 maxLength={500}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Say something…"
+                disabled={expired}
+                placeholder={expired ? "Lobby expired" : "Say something…"}
                 aria-label="Message"
-                className="min-w-0 flex-1 border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                className="min-w-0 flex-1 border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-50"
               />
-              <button className="bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground">
+              <button
+                disabled={expired}
+                className="bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground disabled:opacity-50"
+              >
                 Send
               </button>
             </div>
