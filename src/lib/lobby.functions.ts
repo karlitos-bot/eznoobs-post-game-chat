@@ -29,61 +29,35 @@ export const createLobby = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let code = "";
-    for (let attempt = 0; attempt < 8; attempt++) {
-      code = Array.from(
-        { length: 5 },
-        () => alphabet[Math.floor(Math.random() * alphabet.length)],
-      ).join("");
-      const { data: lobby, error } = await supabaseAdmin
-        .from("lobbies")
-        .insert({ code, game: data.game })
-        .select("id, code")
-        .single();
-      if (!error && lobby) {
-        await supabaseAdmin.from("participants").insert({
-          lobby_id: lobby.id,
-          guest_id: data.guestId,
-          nickname: data.nickname,
-          team: data.team,
-        });
-        return { code: lobby.code };
-      }
-      if (error && error.code !== "23505") throw new Error(error.message);
-    }
-    throw new Error("Could not allocate a lobby code, try again.");
+    const { data: result, error } = await supabaseAdmin.rpc("create_lobby", {
+      p_game: data.game,
+      p_guest_id: data.guestId,
+      p_nickname: data.nickname,
+      p_team: data.team,
+    });
+    if (error) throw new Error(error.message);
+    const rows = result as { out_code: string }[] | null;
+    if (!rows || rows.length === 0) throw new Error("Could not create lobby.");
+    return { code: rows[0].out_code };
   });
 
 export const joinLobby = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => joinSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id, code, game, expires_at")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!lobby) return { ok: false as const, reason: "This lobby does not exist." };
-    if (new Date(lobby.expires_at).getTime() < Date.now())
-      return { ok: false as const, reason: "This lobby has expired." };
-
-    const { error } = await supabaseAdmin.from("participants").upsert(
-      {
-        lobby_id: lobby.id,
-        guest_id: data.guestId,
-        nickname: data.nickname,
-        team: data.team,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "lobby_id,guest_id" },
-    );
+    const { data: result, error } = await supabaseAdmin.rpc("join_lobby", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+      p_nickname: data.nickname,
+      p_team: data.team,
+    });
     if (error) throw new Error(error.message);
-    await supabaseAdmin
-      .from("lobbies")
-      .update({ last_activity_at: new Date().toISOString() })
-      .eq("id", lobby.id);
-    return { ok: true as const, lobby: { code: lobby.code, game: lobby.game } };
+    const rows = result as { out_ok: boolean; out_reason: string | null; out_code: string | null; out_game: string | null }[] | null;
+    const r = rows?.[0];
+    if (!r || !r.out_ok) {
+      return { ok: false as const, reason: r?.out_reason ?? "Could not join lobby." };
+    }
+    return { ok: true as const, lobby: { code: r.out_code!, game: r.out_game! } };
   });
 
 export const sendMessage = createServerFn({ method: "POST" })
@@ -98,54 +72,17 @@ export const sendMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id, expires_at")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!lobby) throw new Error("Lobby not found.");
-    if (new Date(lobby.expires_at).getTime() < Date.now()) throw new Error("Lobby expired.");
-
-    const { data: participant } = await supabaseAdmin
-      .from("participants")
-      .select("nickname, team")
-      .eq("lobby_id", lobby.id)
-      .eq("guest_id", data.guestId)
-      .maybeSingle();
-    if (!participant) throw new Error("Join the lobby before chatting.");
-
-    // basic anti-spam: max 8 messages per 10 seconds per guest
-    const since = new Date(Date.now() - 10_000).toISOString();
-    const { count } = await supabaseAdmin
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("lobby_id", lobby.id)
-      .eq("guest_id", data.guestId)
-      .gte("created_at", since);
-    if ((count ?? 0) >= 8) throw new Error("Slow down — too many messages.");
-
-    const { error } = await supabaseAdmin.from("messages").insert({
-      lobby_id: lobby.id,
-      guest_id: data.guestId,
-      nickname: participant.nickname,
-      team: participant.team,
-      body: data.body,
+    const { data: result, error } = await supabaseAdmin.rpc("send_message", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+      p_body: data.body,
     });
     if (error) throw new Error(error.message);
-
-    const now = new Date();
-    await supabaseAdmin
-      .from("lobbies")
-      .update({
-        last_activity_at: now.toISOString(),
-        expires_at: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-      })
-      .eq("id", lobby.id);
-    await supabaseAdmin
-      .from("participants")
-      .update({ last_seen_at: now.toISOString() })
-      .eq("lobby_id", lobby.id)
-      .eq("guest_id", data.guestId);
+    const rows = result as { out_ok: boolean; out_reason: string | null }[] | null;
+    const r = rows?.[0];
+    if (!r || !r.out_ok) {
+      throw new Error(r?.out_reason ?? "Message failed.");
+    }
     return { ok: true };
   });
 
@@ -187,27 +124,13 @@ export const reportMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!lobby) throw new Error("Lobby not found.");
-    const { data: msg } = await supabaseAdmin
-      .from("messages")
-      .select("id, guest_id")
-      .eq("id", data.messageId)
-      .eq("lobby_id", lobby.id)
-      .maybeSingle();
-    if (!msg) throw new Error("Message not found.");
-    const { error } = await supabaseAdmin.from("reports").insert({
-      lobby_id: lobby.id,
-      message_id: msg.id,
-      reporter_guest_id: data.guestId,
-      reported_guest_id: msg.guest_id,
-      reason: data.reason,
+    const { error } = await supabaseAdmin.rpc("report_message", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+      p_message_id: data.messageId,
+      p_reason: data.reason,
     });
-    if (error && error.code !== "23505") throw new Error(error.message);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -215,16 +138,10 @@ export const touchPresence = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!lobby) return { ok: false };
-    await supabaseAdmin
-      .from("participants")
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq("lobby_id", lobby.id)
-      .eq("guest_id", data.guestId);
+    const { error } = await supabaseAdmin.rpc("touch_presence", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+    });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
