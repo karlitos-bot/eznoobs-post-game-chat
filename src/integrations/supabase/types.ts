@@ -14,7 +14,109 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lobbies: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          game: string
+          id: string
+          last_activity_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          game: string
+          id?: string
+          last_activity_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          game?: string
+          id?: string
+          last_activity_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          guest_id: string
+          id: string
+          lobby_id: string
+          nickname: string
+          team: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          guest_id: string
+          id?: string
+          lobby_id: string
+          nickname: string
+          team: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          guest_id?: string
+          id?: string
+          lobby_id?: string
+          nickname?: string
+          team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants: {
+        Row: {
+          guest_id: string
+          id: string
+          joined_at: string
+          last_seen_at: string
+          lobby_id: string
+          nickname: string
+          team: string
+        }
+        Insert: {
+          guest_id: string
+          id?: string
+          joined_at?: string
+          last_seen_at?: string
+          lobby_id: string
+          nickname: string
+          team: string
+        }
+        Update: {
+          guest_id?: string
+          id?: string
+          joined_at?: string
+          last_seen_at?: string
+          lobby_id?: string
+          nickname?: string
+          team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
