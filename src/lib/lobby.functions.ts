@@ -228,29 +228,3 @@ export const touchPresence = createServerFn({ method: "POST" })
       .eq("guest_id", data.guestId);
     return { ok: true };
   });
-
-const unusedGetLobby = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) =>
-    z.object({ code: codeSchema, guestId: guestSchema.optional() }).parse(d),
-  )
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id, code, game, created_at, expires_at, last_activity_at")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (!lobby) return null;
-    let joined = false;
-    if (data.guestId) {
-      const { data: p } = await supabaseAdmin
-        .from("participants")
-        .select("id")
-        .eq("lobby_id", lobby.id)
-        .eq("guest_id", data.guestId)
-        .maybeSingle();
-      joined = Boolean(p);
-    }
-    return { ...lobby, joined };
-  });
-void unusedGetLobby;
