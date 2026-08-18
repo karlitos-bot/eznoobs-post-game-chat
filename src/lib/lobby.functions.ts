@@ -150,7 +150,9 @@ export const sendMessage = createServerFn({ method: "POST" })
   });
 
 export const getLobby = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ code: codeSchema }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ code: codeSchema, guestId: guestSchema.optional() }).parse(d),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: lobby } = await supabaseAdmin
@@ -159,5 +161,15 @@ export const getLobby = createServerFn({ method: "GET" })
       .eq("code", data.code)
       .maybeSingle();
     if (!lobby) return null;
-    return lobby;
+    let joined = false;
+    if (data.guestId) {
+      const { data: p } = await supabaseAdmin
+        .from("participants")
+        .select("id")
+        .eq("lobby_id", lobby.id)
+        .eq("guest_id", data.guestId)
+        .maybeSingle();
+      joined = Boolean(p);
+    }
+    return { ...lobby, joined };
   });

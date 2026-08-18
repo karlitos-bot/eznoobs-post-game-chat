@@ -37,7 +37,7 @@ export const Route = createFileRoute("/room/$code")({
   component: RoomPage,
 });
 
-type Lobby = { id: string; code: string; game: string; expires_at: string };
+type Lobby = { id: string; code: string; game: string; expires_at: string; joined?: boolean };
 type Message = {
   id: string;
   guest_id: string;
@@ -59,18 +59,22 @@ function RoomPage() {
   const [guestId, setGuestId] = useState("");
 
   useEffect(() => {
-    setGuestId(getGuestId());
+    const gid = getGuestId();
+    setGuestId(gid);
     if (!CODE_RE.test(code)) {
       setState("missing");
       return;
     }
     let alive = true;
-    fetchLobby({ data: { code } })
+    fetchLobby({ data: { code, guestId: gid } })
       .then((l) => {
         if (!alive) return;
-        if (!l) return setState("missing");
+        if (!l) {
+          setState("missing");
+          return;
+        }
         setLobby(l as Lobby);
-        setState("gate");
+        setState(l.joined ? "in" : "gate");
       })
       .catch(() => alive && setState("missing"));
     return () => {
