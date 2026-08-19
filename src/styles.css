@@ -249,6 +249,51 @@
   50% { opacity: 1; transform: scale(1); }
 }
 
+@keyframes reaction-tap {
+  0% { transform: translateY(0) scale(1); }
+  42% { transform: translateY(-2px) scale(1.16) rotate(-3deg); }
+  72% { transform: translateY(0) scale(0.97) rotate(1deg); }
+  100% { transform: translateY(0) scale(1) rotate(0); }
+}
+
+@keyframes salt-hot {
+  0%, 100% { transform: scaleY(0.9); opacity: 0.72; }
+  50% { transform: scaleY(1.2); opacity: 1; }
+}
+
+@keyframes salt-nuclear {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-1px) scale(1.08); }
+  70% { transform: translateY(1px) scale(0.98); }
+}
+
+button[aria-label*=" reaction"] {
+  transform-origin: center;
+  will-change: transform;
+}
+
+button[aria-label*=" reaction"]:hover {
+  transform: translateY(-1px) scale(1.035);
+}
+
+button[aria-label*=" reaction"]:active {
+  animation: reaction-tap 260ms cubic-bezier(.2,.85,.35,1);
+}
+
+div[title="Salt level: SPICY"] > div > span {
+  animation: salt-hot 980ms ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+div[title="Salt level: NUCLEAR"] {
+  animation: salt-nuclear 620ms ease-in-out infinite;
+}
+
+div[title="Salt level: NUCLEAR"] > div > span {
+  animation: salt-hot 520ms ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
 @utility msg-in {
   animation: msg-in 160ms ease-out both;
 }
