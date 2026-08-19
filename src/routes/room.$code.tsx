@@ -78,14 +78,15 @@ type Reaction = {
   message_id: string;
   guest_id: string;
   emoji: ReactionName;
+  created_at: string;
 };
 type RematchVote = { id: string; guest_id: string };
 
-const REACTIONS: { value: ReactionName; label: string }[] = [
-  { value: "GG", label: "GG" },
-  { value: "skull", label: "☠" },
-  { value: "salt", label: "🧂" },
-  { value: "clown", label: "🤡" },
+const REACTIONS: { value: ReactionName; label: string; title: string }[] = [
+  { value: "GG", label: "GG", title: "Good game" },
+  { value: "skull", label: "☠", title: "Dead" },
+  { value: "salt", label: "🧂", title: "Salty" },
+  { value: "clown", label: "🤡", title: "Clown" },
 ];
 
 function RoomPage() {
@@ -296,7 +297,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     async function refreshReactions() {
       const { data } = await supabase
         .from("reactions")
-        .select("id, message_id, guest_id, emoji")
+        .select("id, message_id, guest_id, emoji, created_at")
         .eq("lobby_id", lobby.id);
       if (alive) setReactions((data ?? []) as Reaction[]);
     }
@@ -412,12 +413,24 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }, [reactions]);
 
   const salt = useMemo(() => {
-    const recent = messages.filter((m) => now - new Date(m.created_at).getTime() < 60_000).length;
-    if (recent > 14) return "NUCLEAR";
-    if (recent > 7) return "SPICY";
-    if (recent > 2) return "WARM";
-    return "CALM";
-  }, [messages, now]);
+    const minuteAgo = now - 60_000;
+    const messageScore = messages.filter(
+      (m) => new Date(m.created_at).getTime() >= minuteAgo,
+    ).length;
+    const reactionScore = reactions.reduce((score, reaction) => {
+      if (new Date(reaction.created_at).getTime() < minuteAgo) return score;
+      if (reaction.emoji === "salt") return score + 3;
+      if (reaction.emoji === "clown") return score + 2;
+      if (reaction.emoji === "skull") return score + 1;
+      return score;
+    }, 0);
+    const score = messageScore + reactionScore;
+
+    if (score > 20) return { label: "NUCLEAR", className: "text-red-400", score };
+    if (score > 11) return { label: "SPICY", className: "text-orange-400", score };
+    if (score > 4) return { label: "WARM", className: "text-yellow-300", score };
+    return { label: "CALM", className: "text-primary", score };
+  }, [messages, reactions, now]);
 
   const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
   const expired = new Date(expiresAt).getTime() <= now;
@@ -440,13 +453,16 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     }
   }
 
-  function copyInvite() {
+  async function copyInvite() {
     const url = `${window.location.origin}/room/${lobby.code}`;
-    navigator.clipboard.writeText(url).then(() => {
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Invite link copied");
       setTimeout(() => setCopied(false), 1600);
-    });
+    } catch {
+      toast.error("Could not copy the invite link.");
+    }
   }
 
   async function handleReaction(messageId: string, emoji: ReactionName) {
@@ -469,6 +485,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }
 
   async function handleLeave() {
+    if (leaving) return;
     setLeaving(true);
     try {
       await leave({ data: { code: lobby.code, guestId } });
@@ -481,40 +498,24 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-background">
-      <header className="relative z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-surface/70 px-4 py-3">
-        <Logo className="text-lg" />
-        <span className="hud-label hidden sm:inline">{lobby.game}</span>
-        <span className="flex items-center gap-2 border border-border px-2 py-1 font-mono text-sm tracking-[0.24em] text-primary">
-          {lobby.code}
-        </span>
-        <button
-          onClick={copyInvite}
-          className="flex items-center gap-2 border border-border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} Invite
-        </button>
-        <button
-          onClick={handleRematch}
-          disabled={expired}
-          className={`flex items-center gap-2 border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] transition-colors disabled:opacity-40 ${
-            hasRematchVote
-              ? "border-primary text-primary"
-              : "border-border text-muted-foreground hover:border-primary hover:text-primary"
-          }`}
-        >
-          <RotateCcw className="size-3.5" /> Rematch {rematchVotes.length || ""}
-        </button>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="hud-label flex items-center gap-1.5 text-primary">
-            <span className="inline-block size-1.5 animate-pulse bg-primary" /> Live
+      <header className="relative z-20 flex flex-wrap items-center gap-2 border-b border-border bg-surface/70 px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="flex w-full min-w-0 items-center gap-2 lg:w-auto">
+          <Logo className="shrink-0 text-lg" />
+          <span className="hud-label hidden md:inline">{lobby.game}</span>
+          <span className="flex shrink-0 items-center border border-border px-2 py-1 font-mono text-sm tracking-[0.2em] text-primary sm:tracking-[0.24em]">
+            {lobby.code}
           </span>
-          <span className="hud-label hidden md:inline">Salt: {salt}</span>
-          <span className="hud-label hidden xl:inline">
-            {expired ? "Expired" : `Expires in ~${minutesLeft}m idle`}
+          <span
+            className={`hud-label ml-auto flex shrink-0 items-center gap-1.5 lg:ml-1 ${
+              expired ? "text-destructive" : "text-primary"
+            }`}
+          >
+            <span className={`inline-block size-1.5 ${expired ? "bg-destructive" : "animate-pulse bg-primary"}`} />
+            {expired ? "Ended" : "Live"}
           </span>
           <button
             onClick={() => setShowPlayers(true)}
-            className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground lg:hidden"
+            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground lg:hidden"
           >
             <Users className="size-3.5" /> {activePlayers.length}
           </button>
@@ -522,10 +523,37 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             onClick={handleLeave}
             disabled={leaving}
             aria-label="Leave lobby"
-            className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
+            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
           >
             <LogOut className="size-3.5" /> <span className="hidden sm:inline">Leave</span>
           </button>
+        </div>
+
+        <div className="flex w-full min-w-0 items-center gap-2 lg:ml-auto lg:w-auto">
+          <button
+            onClick={copyInvite}
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:flex-none sm:tracking-[0.14em]"
+          >
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} Invite
+          </button>
+          <button
+            onClick={handleRematch}
+            disabled={expired}
+            className={`flex min-w-0 flex-1 items-center justify-center gap-2 border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] transition-colors disabled:opacity-40 sm:flex-none sm:tracking-[0.14em] ${
+              hasRematchVote
+                ? "border-primary bg-primary/5 text-primary"
+                : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            <RotateCcw className="size-3.5" /> Rematch
+            {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}</span>}
+          </button>
+          <span className={`hud-label hidden sm:inline ${salt.className}`} title={`Salt score ${salt.score}`}>
+            Salt: {salt.label}
+          </span>
+          <span className="hud-label hidden xl:inline">
+            {expired ? "Read-only" : `~${minutesLeft}m idle`}
+          </span>
         </div>
       </header>
 
@@ -552,15 +580,20 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         )}
 
         <main className="flex min-h-0 flex-1 flex-col">
-          {rematchVotes.length >= 2 && (
+          {expired && (
+            <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-center font-mono text-[0.68rem] uppercase tracking-[0.16em] text-destructive">
+              Lobby expired. Chat is now read-only.
+            </div>
+          )}
+          {!expired && rematchVotes.length >= 2 && (
             <div className="border-b border-primary/30 bg-primary/5 px-4 py-2 text-center font-mono text-[0.68rem] uppercase tracking-[0.16em] text-primary">
               {rematchVotes.length} players want the runback. Queue it up.
             </div>
           )}
 
-          <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
             <div className="pointer-events-none absolute inset-0 grid-bg opacity-20" />
-            <div className="relative z-10 space-y-2.5">
+            <div className="relative z-10 space-y-3 sm:space-y-2.5">
               {visible.length === 0 && (
                 <p className="hud-label">No messages yet. Open with a GG or an accusation.</p>
               )}
@@ -568,23 +601,31 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                 const tc = teamClasses(m.team);
                 const messageReactions = reactionsByMessage.get(m.id) ?? [];
                 return (
-                  <div key={m.id} className="msg-in group/msg flex gap-3 text-sm">
-                    <span className="hud-label mt-1 w-11 shrink-0 text-right">
+                  <div key={m.id} className="msg-in group/msg flex gap-2.5 text-sm sm:gap-3">
+                    <span className="hud-label mt-1 hidden w-11 shrink-0 text-right sm:block">
                       {new Date(m.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
                     <div className={`min-w-0 flex-1 border-l-2 pl-3 ${tc.border}`}>
-                      <span className={`font-mono text-xs font-semibold ${tc.text}`}>
-                        {m.nickname}
-                        {m.guest_id === guestId && (
-                          <span className="ml-1 text-muted-foreground">(you)</span>
-                        )}
-                      </span>
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className={`font-mono text-xs font-semibold ${tc.text}`}>
+                          {m.nickname}
+                          {m.guest_id === guestId && (
+                            <span className="ml-1 text-muted-foreground">(you)</span>
+                          )}
+                        </span>
+                        <span className="hud-label sm:hidden">
+                          {new Date(m.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
                       <p className="break-words text-foreground/90">{m.body}</p>
 
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <div className="mt-1.5 flex min-h-6 flex-wrap items-center gap-1.5">
                         {REACTIONS.map((item) => {
                           const count = messageReactions.filter((r) => r.emoji === item.value).length;
                           const active = messageReactions.some(
@@ -596,16 +637,18 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                               type="button"
                               disabled={expired}
                               onClick={() => handleReaction(m.id, item.value)}
-                              aria-label={`${item.value} reaction${count ? `, ${count}` : ""}`}
-                              className={`border px-1.5 py-0.5 font-mono text-[0.64rem] transition-colors disabled:opacity-40 ${
+                              aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
+                              title={item.title}
+                              className={`border px-1.5 py-0.5 font-mono text-[0.64rem] transition-all disabled:opacity-40 ${
                                 active
                                   ? "border-primary bg-primary/10 text-primary"
                                   : count
                                     ? "border-border text-foreground hover:border-primary hover:text-primary"
-                                    : "border-transparent text-muted-foreground opacity-0 hover:text-primary group-hover/msg:opacity-100 focus:opacity-100"
+                                    : "border-border/60 text-muted-foreground hover:border-primary hover:text-primary sm:border-transparent sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
                               }`}
                             >
-                              {item.label}{count ? ` ${count}` : ""}
+                              {item.label}
+                              {count ? ` ${count}` : ""}
                             </button>
                           );
                         })}
@@ -614,6 +657,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                           <button
                             type="button"
                             aria-label={`Report message from ${m.nickname}`}
+                            title={`Report ${m.nickname}`}
                             onClick={() =>
                               report({
                                 data: {
@@ -626,9 +670,9 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                                 .then(() => toast.success("Reported. Thanks."))
                                 .catch(() => toast.error("Could not report that message."))
                             }
-                            className="ml-1 hidden items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-destructive group-hover/msg:flex"
+                            className="ml-auto flex items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
                           >
-                            <Flag className="size-3" /> Report
+                            <Flag className="size-3" /> <span className="hidden sm:inline">Report</span>
                           </button>
                         )}
                       </div>
@@ -653,7 +697,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               />
               <button
                 disabled={expired}
-                className="bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground disabled:opacity-50"
+                className="bg-primary px-4 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-50 sm:px-5 sm:tracking-[0.16em]"
               >
                 Send
               </button>
@@ -721,7 +765,7 @@ function PlayerList({
                               : [...prev, p.guest_id],
                           )
                         }
-                        className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+                        className="text-muted-foreground opacity-60 transition-opacity hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                       >
                         {isMuted ? (
                           <VolumeX className="size-3.5" />

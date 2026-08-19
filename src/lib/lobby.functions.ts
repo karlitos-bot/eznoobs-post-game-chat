@@ -107,13 +107,16 @@ export const getLobby = createServerFn({ method: "GET" })
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (!lobby) return null;
+
     let joined = false;
     if (data.guestId) {
+      const activeSince = new Date(Date.now() - 3 * 60_000).toISOString();
       const { data: p } = await supabaseAdmin
         .from("participants")
         .select("id")
         .eq("lobby_id", lobby.id)
         .eq("guest_id", data.guestId)
+        .gt("last_seen_at", activeSince)
         .maybeSingle();
       joined = Boolean(p);
     }
