@@ -6,8 +6,13 @@ import {
   Check,
   Copy,
   Flag,
+  Hash,
   LogOut,
+  Radio,
   RotateCcw,
+  Send,
+  Swords,
+  Timer,
   Users,
   Volume2,
   VolumeX,
@@ -124,31 +129,39 @@ function RoomPage() {
     };
   }, [code, fetchLobby]);
 
-  if (state === "loading")
+  if (state === "loading") {
     return (
       <Centered>
-        <p className="hud-label">Pinging lobby…</p>
+        <div className="flex flex-col items-center gap-3">
+          <span className="size-2 bg-primary signal-pulse" />
+          <p className="hud-label text-primary">Pinging lobby {code}</p>
+        </div>
       </Centered>
     );
+  }
 
-  if (state === "missing")
+  if (state === "missing") {
     return (
       <Centered>
-        <h1 className="text-4xl">Lobby offline</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Code <span className="font-mono text-foreground">{code}</span> doesn't exist or has
-          expired.
-        </p>
-        <Link
-          to="/"
-          className="mt-6 inline-block bg-primary px-5 py-3 font-mono text-xs uppercase tracking-[0.18em] text-primary-foreground"
-        >
-          Create a lobby
-        </Link>
+        <div className="ez-panel corner-cut w-[min(92vw,34rem)] p-7 sm:p-9">
+          <Radio className="mx-auto size-5 text-destructive" />
+          <p className="hud-label mt-4 text-destructive">Signal lost</p>
+          <h1 className="mt-2 text-5xl">Lobby offline</h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
+            Code <span className="font-mono text-foreground">{code}</span> doesn&apos;t exist or has expired.
+          </p>
+          <Link
+            to="/"
+            className="tactical-button mt-6 inline-flex items-center gap-2 bg-primary px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground"
+          >
+            Create a lobby
+          </Link>
+        </div>
       </Centered>
     );
+  }
 
-  if (state === "gate" && lobby)
+  if (state === "gate" && lobby) {
     return (
       <JoinGate
         lobby={lobby}
@@ -157,14 +170,17 @@ function RoomPage() {
         guestId={guestId}
       />
     );
+  }
 
   return <Room lobby={lobby!} guestId={guestId} />;
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-5 text-center">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-5 text-center">
       <div className="pointer-events-none absolute inset-0 grid-bg opacity-30" />
+      <div className="pointer-events-none absolute inset-0 radar-glow" />
+      <div className="pointer-events-none absolute inset-0 scanlines opacity-20" />
       <div className="relative z-10">{children}</div>
     </div>
   );
@@ -212,52 +228,79 @@ function JoinGate({
     <Centered>
       <form
         onSubmit={submit}
-        className="w-[min(92vw,26rem)] border border-border bg-surface/80 p-6 text-left"
+        className="ez-panel-strong corner-cut relative w-[min(94vw,31rem)] overflow-hidden text-left"
       >
-        <Logo className="text-xl" />
-        <p className="hud-label mt-4">
-          Lobby <span className="text-primary">{lobby.code}</span> · {lobby.game}
-        </p>
-        <h1 className="mt-2 text-3xl">Drop in</h1>
-
-        <label className="hud-label mt-5 block" htmlFor="nick">
-          Nickname (max 20)
-        </label>
-        <input
-          id="nick"
-          autoFocus
-          maxLength={20}
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder="ghostpeek"
-          className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
-        />
-
-        <span className="hud-label mt-5 block">Side</span>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {TEAMS.map((t) => (
-            <button
-              type="button"
-              key={t.value}
-              onClick={() => setTeam(t.value)}
-              className={`border px-2 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] transition-colors ${
-                team === t.value
-                  ? "border-primary text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="pointer-events-none absolute inset-0 micro-grid opacity-20" />
+        <div className="relative border-b border-border/70 px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <Logo className="text-xl" />
+            <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.15em] text-primary">
+              <span className="size-1.5 bg-primary signal-pulse" /> Live lobby
+            </span>
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-4 border-y border-border/60 py-3">
+            <div>
+              <p className="hud-label">Room code</p>
+              <p className="mt-1 font-mono text-2xl tracking-[0.26em] text-primary">{lobby.code}</p>
+            </div>
+            <div className="text-right">
+              <p className="hud-label">Game</p>
+              <p className="mt-1 text-sm text-foreground">{lobby.game}</p>
+            </div>
+          </div>
+          <h1 className="mt-5 text-4xl">Drop into comms</h1>
+          <p className="mt-2 text-sm text-muted-foreground">No account. Pick a name and a side.</p>
         </div>
 
-        <button
-          disabled={busy}
-          className="mt-6 w-full bg-primary py-3 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-60"
-        >
-          {busy ? "Connecting…" : "Enter lobby"}
-        </button>
-        <SafetyNote className="mt-4" />
+        <div className="relative space-y-5 px-6 py-6">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="hud-label" htmlFor="nick">Nickname</label>
+              <span className="font-mono text-[0.58rem] uppercase tracking-[0.13em] text-muted-foreground">Max 20</span>
+            </div>
+            <input
+              id="nick"
+              autoFocus
+              maxLength={20}
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="ghostpeek"
+              className="w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <span className="hud-label">Side</span>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {TEAMS.map((t) => (
+                <button
+                  type="button"
+                  key={t.value}
+                  onClick={() => setTeam(t.value)}
+                  className={`border px-2 py-3 font-mono text-[0.64rem] uppercase tracking-[0.11em] transition-all ${
+                    team === t.value
+                      ? t.value === "blue"
+                        ? "border-blue-team bg-blue-team/[0.08] text-blue-team"
+                        : t.value === "red"
+                          ? "border-red-team bg-red-team/[0.08] text-red-team"
+                          : "border-primary bg-primary/[0.07] text-primary"
+                      : "border-border bg-background/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            disabled={busy}
+            className="tactical-button flex w-full items-center justify-center gap-2 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? "Connecting…" : "Enter lobby"}
+          </button>
+          <SafetyNote className="border-t border-border/60 pt-4" />
+        </div>
       </form>
     </Centered>
   );
@@ -428,10 +471,10 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     }, 0);
     const score = messageScore + reactionScore;
 
-    if (score > 20) return { label: "NUCLEAR", className: "text-red-400", score };
-    if (score > 11) return { label: "SPICY", className: "text-orange-400", score };
-    if (score > 4) return { label: "WARM", className: "text-yellow-300", score };
-    return { label: "CALM", className: "text-primary", score };
+    if (score > 20) return { label: "NUCLEAR", className: "text-red-400", score, level: 4 };
+    if (score > 11) return { label: "SPICY", className: "text-orange-400", score, level: 3 };
+    if (score > 4) return { label: "WARM", className: "text-yellow-300", score, level: 2 };
+    return { label: "CALM", className: "text-primary", score, level: 1 };
   }, [messages, reactions, now]);
 
   const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
@@ -499,218 +542,323 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-background">
-      <header className="relative z-20 flex flex-wrap items-center gap-2 border-b border-border bg-surface/70 px-3 py-2.5 sm:px-4 sm:py-3">
-        <div className="flex w-full min-w-0 items-center gap-2 lg:w-auto">
-          <Logo className="shrink-0 text-lg" />
-          <span className="hud-label hidden md:inline">{lobby.game}</span>
-          <span className="flex shrink-0 items-center border border-border px-2 py-1 font-mono text-sm tracking-[0.2em] text-primary sm:tracking-[0.24em]">
-            {lobby.code}
-          </span>
-          <span
-            className={`hud-label ml-auto flex shrink-0 items-center gap-1.5 lg:ml-1 ${
-              expired ? "text-destructive" : "text-primary"
-            }`}
-          >
-            <span className={`inline-block size-1.5 ${expired ? "bg-destructive" : "animate-pulse bg-primary"}`} />
-            {expired ? "Ended" : "Live"}
-          </span>
-          <button
-            onClick={() => setShowPlayers(true)}
-            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground lg:hidden"
-          >
-            <Users className="size-3.5" /> {activePlayers.length}
-          </button>
-          <button
-            onClick={handleLeave}
-            disabled={leaving}
-            aria-label="Leave lobby"
-            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
-          >
-            <LogOut className="size-3.5" /> <span className="hidden sm:inline">Leave</span>
-          </button>
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-0 grid-bg opacity-[0.16]" />
+      <div className="pointer-events-none absolute inset-0 radar-glow opacity-55" />
+
+      <header className="relative z-20 border-b border-border/80 bg-background/90 backdrop-blur-sm">
+        <div className="flex min-h-14 items-center gap-3 px-3 py-2.5 sm:px-4 lg:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo className="shrink-0 text-lg sm:text-xl" />
+            <span className="hidden h-5 w-px bg-border md:block" />
+            <div className="hidden min-w-0 md:block">
+              <p className="hud-label">Post-match lobby</p>
+              <p className="truncate text-xs text-foreground/80">{lobby.game}</p>
+            </div>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 lg:ml-6">
+            <div className="flex items-center border border-primary/30 bg-primary/[0.04] px-2.5 py-1.5">
+              <Hash className="mr-1.5 size-3.5 text-primary" />
+              <span className="font-mono text-sm tracking-[0.22em] text-primary sm:text-base">{lobby.code}</span>
+            </div>
+            <span
+              className={`hidden items-center gap-1.5 font-mono text-[0.6rem] uppercase tracking-[0.15em] sm:flex ${
+                expired ? "text-destructive" : "text-primary"
+              }`}
+            >
+              <span className={`size-1.5 ${expired ? "bg-destructive" : "bg-primary signal-pulse"}`} />
+              {expired ? "Ended" : "Live"}
+            </span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 lg:ml-3">
+            <button
+              onClick={() => setShowPlayers(true)}
+              className="flex items-center gap-1.5 border border-border bg-surface/40 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground lg:hidden"
+            >
+              <Users className="size-3.5" /> {activePlayers.length}
+            </button>
+            <button
+              onClick={copyInvite}
+              className="tactical-button flex items-center gap-1.5 border border-border bg-surface/45 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:px-3"
+            >
+              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              <span className="hidden sm:inline">Invite</span>
+            </button>
+            <button
+              onClick={handleLeave}
+              disabled={leaving}
+              aria-label="Leave lobby"
+              className="flex items-center gap-1.5 border border-border bg-surface/45 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
+            >
+              <LogOut className="size-3.5" />
+              <span className="hidden xl:inline">Leave</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex w-full min-w-0 items-center gap-2 lg:ml-auto lg:w-auto">
-          <button
-            onClick={copyInvite}
-            className="flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:flex-none sm:tracking-[0.14em]"
-          >
-            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} Invite
-          </button>
+        <div className="flex items-center gap-2 overflow-x-auto border-t border-border/60 bg-surface/25 px-3 py-2 sm:px-4 lg:px-5">
+          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
+            <span className="hud-label">Salt</span>
+            <SaltMeter level={salt.level} label={salt.label} className={salt.className} />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
+            <Timer className="size-3.5 text-muted-foreground" />
+            <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+              {expired ? "Read-only" : `~${minutesLeft}m idle`}
+            </span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3 lg:hidden">
+            <Users className="size-3.5 text-muted-foreground" />
+            <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+              {activePlayers.length} online
+            </span>
+          </div>
+
           <button
             onClick={handleRematch}
             disabled={expired}
-            className={`flex min-w-0 flex-1 items-center justify-center gap-2 border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] transition-colors disabled:opacity-40 sm:flex-none sm:tracking-[0.14em] ${
+            className={`ml-auto flex shrink-0 items-center gap-2 border px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] transition-all disabled:opacity-40 ${
               hasRematchVote
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                ? "border-primary bg-primary/[0.07] text-primary"
+                : "border-border bg-background/45 text-muted-foreground hover:border-primary hover:text-primary"
             }`}
           >
-            <RotateCcw className="size-3.5" /> Rematch
+            <RotateCcw className="size-3.5" /> Run it back
             {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}</span>}
           </button>
-          <span className={`hud-label hidden sm:inline ${salt.className}`} title={`Salt score ${salt.score}`}>
-            Salt: {salt.label}
-          </span>
-          <span className="hud-label hidden xl:inline">
-            {expired ? "Read-only" : `~${minutesLeft}m idle`}
-          </span>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-surface/40 p-4 lg:block">
-          <p className="hud-label mb-4">Online · {activePlayers.length}</p>
-          <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
+      <div className="relative z-10 flex min-h-0 flex-1">
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-border/80 bg-background/72 lg:flex">
+          <div className="border-b border-border/70 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="hud-label text-primary">Roster</p>
+                <h2 className="mt-1 text-xl">Players online</h2>
+              </div>
+              <span className="flex size-9 items-center justify-center border border-border bg-surface/40 font-mono text-xs text-primary">
+                {activePlayers.length}
+              </span>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
+          </div>
+          <div className="border-t border-border/70 p-4">
+            <p className="hud-label">Room {lobby.code}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Players disappear from the roster after inactivity.</p>
+          </div>
         </aside>
 
         {showPlayers && (
           <div className="fixed inset-0 z-30 flex lg:hidden">
-            <div className="flex-1 bg-background/70" onClick={() => setShowPlayers(false)} />
-            <div className="w-72 overflow-y-auto border-l border-border bg-surface p-4">
-              <button
-                onClick={() => setShowPlayers(false)}
-                className="mb-2 flex items-center gap-2 hud-label"
-              >
-                <X className="size-3.5" /> Close
-              </button>
-              <p className="hud-label mb-4">Online · {activePlayers.length}</p>
-              <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
+            <div className="flex-1 bg-background/75 backdrop-blur-[2px]" onClick={() => setShowPlayers(false)} />
+            <div className="flex w-[min(84vw,20rem)] flex-col border-l border-border bg-background">
+              <div className="flex items-center justify-between border-b border-border px-4 py-4">
+                <div>
+                  <p className="hud-label text-primary">Roster</p>
+                  <h2 className="mt-1 text-xl">{activePlayers.length} online</h2>
+                </div>
+                <button
+                  onClick={() => setShowPlayers(false)}
+                  className="flex size-9 items-center justify-center border border-border text-muted-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
+              </div>
             </div>
           </div>
         )}
 
-        <main className="flex min-h-0 flex-1 flex-col">
+        <main className="flex min-w-0 min-h-0 flex-1 flex-col bg-background/45">
           {expired && (
-            <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-center font-mono text-[0.68rem] uppercase tracking-[0.16em] text-destructive">
-              Lobby expired. Chat is now read-only.
+            <div className="border-b border-destructive/30 bg-destructive/[0.06] px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-destructive">
+              Lobby expired · Chat is now read-only
             </div>
           )}
           {!expired && rematchVotes.length >= 2 && (
-            <div className="border-b border-primary/30 bg-primary/5 px-4 py-2 text-center font-mono text-[0.68rem] uppercase tracking-[0.16em] text-primary">
-              {rematchVotes.length} players want the runback. Queue it up.
+            <div className="flex items-center justify-center gap-2 border-b border-primary/30 bg-primary/[0.05] px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-primary">
+              <Swords className="size-3.5" /> {rematchVotes.length} players want the runback · Queue it up
             </div>
           )}
 
-          <div className="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
-            <div className="pointer-events-none absolute inset-0 grid-bg opacity-20" />
-            <div className="relative z-10 space-y-3 sm:space-y-2.5">
-              {visible.length === 0 && (
-                <p className="hud-label">No messages yet. Open with a GG or an accusation.</p>
-              )}
-              {visible.map((m) => {
-                const tc = teamClasses(m.team);
-                const messageReactions = reactionsByMessage.get(m.id) ?? [];
-                return (
-                  <div key={m.id} className="msg-in group/msg flex gap-2.5 text-sm sm:gap-3">
-                    <span className="hud-label mt-1 hidden w-11 shrink-0 text-right sm:block">
-                      {new Date(m.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <div className={`min-w-0 flex-1 border-l-2 pl-3 ${tc.border}`}>
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className={`font-mono text-xs font-semibold ${tc.text}`}>
-                          {m.nickname}
-                          {m.guest_id === guestPublicId && (
-                            <span className="ml-1 text-muted-foreground">(you)</span>
-                          )}
-                        </span>
-                        <span className="hud-label sm:hidden">
-                          {new Date(m.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <p className="break-words text-foreground/90">{m.body}</p>
+          <div className="relative min-h-0 flex-1 overflow-y-auto">
+            <div className="pointer-events-none absolute inset-0 micro-grid opacity-[0.12]" />
+            <div className="relative z-10 mx-auto w-full max-w-5xl px-3 py-5 sm:px-5 lg:px-7 lg:py-7">
+              <div className="mb-5 flex items-end justify-between border-b border-border/60 pb-3">
+                <div>
+                  <p className="hud-label text-primary">Open channel</p>
+                  <h2 className="mt-1 text-2xl">Post-match chat</h2>
+                </div>
+                <span className="hud-label hidden sm:block">{visible.length} messages visible</span>
+              </div>
 
-                      <div className="mt-1.5 flex min-h-6 flex-wrap items-center gap-1.5">
-                        {REACTIONS.map((item) => {
-                          const count = messageReactions.filter((r) => r.emoji === item.value).length;
-                          const active = messageReactions.some(
-                            (r) => r.emoji === item.value && r.guest_id === guestPublicId,
-                          );
-                          return (
-                            <button
-                              key={item.value}
-                              type="button"
-                              disabled={expired}
-                              onClick={() => handleReaction(m.id, item.value)}
-                              aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
-                              title={item.title}
-                              className={`border px-1.5 py-0.5 font-mono text-[0.64rem] transition-all disabled:opacity-40 ${
-                                active
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : count
-                                    ? "border-border text-foreground hover:border-primary hover:text-primary"
-                                    : "border-border/60 text-muted-foreground hover:border-primary hover:text-primary sm:border-transparent sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
-                              }`}
-                            >
-                              {item.label}
-                              {count ? ` ${count}` : ""}
-                            </button>
-                          );
-                        })}
-
-                        {m.guest_id !== guestPublicId && (
-                          <button
-                            type="button"
-                            aria-label={`Report message from ${m.nickname}`}
-                            title={`Report ${m.nickname}`}
-                            onClick={() =>
-                              report({
-                                data: {
-                                  code: lobby.code,
-                                  guestId,
-                                  messageId: m.id,
-                                  reason: "abuse",
-                                },
-                              })
-                                .then(() => toast.success("Reported. Thanks."))
-                                .catch(() => toast.error("Could not report that message."))
-                            }
-                            className="ml-auto flex items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
-                          >
-                            <Flag className="size-3" /> <span className="hidden sm:inline">Report</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
+              <div className="space-y-1.5">
+                {visible.length === 0 && (
+                  <div className="ez-panel border-dashed p-6 text-center sm:p-10">
+                    <Radio className="mx-auto size-5 text-primary" />
+                    <p className="mt-4 display text-xl">Channel is quiet</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Open with a GG or an accusation.</p>
                   </div>
-                );
-              })}
-              <div ref={endRef} />
+                )}
+
+                {visible.map((m) => {
+                  const tc = teamClasses(m.team);
+                  const messageReactions = reactionsByMessage.get(m.id) ?? [];
+                  const own = m.guest_id === guestPublicId;
+                  return (
+                    <article
+                      key={m.id}
+                      className={`msg-in group/msg relative border border-transparent px-2 py-3 transition-colors hover:border-border/70 hover:bg-surface/30 sm:px-3 ${
+                        own ? "bg-primary/[0.018]" : ""
+                      }`}
+                    >
+                      <span className={`absolute bottom-3 left-0 top-3 w-[2px] ${m.team === "blue" ? "bg-blue-team" : m.team === "red" ? "bg-red-team" : "bg-spectator"}`} />
+                      <div className="flex gap-3 sm:gap-4">
+                        <div className={`mt-0.5 flex size-9 shrink-0 items-center justify-center border bg-background font-mono text-[0.68rem] font-semibold uppercase ${tc.border} ${tc.text}`}>
+                          {initials(m.nickname)}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className={`font-mono text-xs font-semibold ${tc.text}`}>{m.nickname}</span>
+                            {own && (
+                              <span className="border border-primary/25 bg-primary/[0.04] px-1.5 py-0.5 font-mono text-[0.52rem] uppercase tracking-[0.12em] text-primary">You</span>
+                            )}
+                            <span className="font-mono text-[0.58rem] uppercase tracking-[0.1em] text-muted-foreground">
+                              {teamName(m.team)}
+                            </span>
+                            <span className="ml-auto font-mono text-[0.58rem] text-muted-foreground/70">
+                              {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+
+                          <p className="mt-1.5 break-words text-[0.92rem] leading-6 text-foreground/92 sm:text-[0.95rem]">{m.body}</p>
+
+                          <div className="mt-2 flex min-h-7 flex-wrap items-center gap-1.5">
+                            {REACTIONS.map((item) => {
+                              const count = messageReactions.filter((r) => r.emoji === item.value).length;
+                              const active = messageReactions.some(
+                                (r) => r.emoji === item.value && r.guest_id === guestPublicId,
+                              );
+                              return (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  disabled={expired}
+                                  onClick={() => handleReaction(m.id, item.value)}
+                                  aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
+                                  title={item.title}
+                                  className={`border px-2 py-1 font-mono text-[0.62rem] transition-all disabled:opacity-40 ${
+                                    active
+                                      ? "border-primary bg-primary/[0.09] text-primary"
+                                      : count
+                                        ? "border-border bg-background/55 text-foreground hover:border-primary hover:text-primary"
+                                        : "border-border/55 bg-background/30 text-muted-foreground hover:border-primary hover:text-primary sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
+                                  }`}
+                                >
+                                  {item.label}{count ? ` ${count}` : ""}
+                                </button>
+                              );
+                            })}
+
+                            {m.guest_id !== guestPublicId && (
+                              <button
+                                type="button"
+                                aria-label={`Report message from ${m.nickname}`}
+                                title={`Report ${m.nickname}`}
+                                onClick={() =>
+                                  report({
+                                    data: {
+                                      code: lobby.code,
+                                      guestId,
+                                      messageId: m.id,
+                                      reason: "abuse",
+                                    },
+                                  })
+                                    .then(() => toast.success("Reported. Thanks."))
+                                    .catch(() => toast.error("Could not report that message."))
+                                }
+                                className="ml-auto flex items-center gap-1 font-mono text-[0.58rem] uppercase tracking-[0.11em] text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
+                              >
+                                <Flag className="size-3" /> <span className="hidden sm:inline">Report</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                <div ref={endRef} />
+              </div>
             </div>
           </div>
 
-          <form onSubmit={submit} className="border-t border-border bg-surface/60 p-3">
-            <div className="flex gap-2">
-              <input
-                value={draft}
-                maxLength={500}
-                onChange={(e) => setDraft(e.target.value)}
-                disabled={expired}
-                placeholder={expired ? "Lobby expired" : "Say something…"}
-                aria-label="Message"
-                className="min-w-0 flex-1 border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-50"
-              />
-              <button
-                disabled={expired}
-                className="bg-primary px-4 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-50 sm:px-5 sm:tracking-[0.16em]"
-              >
-                Send
-              </button>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <SafetyNote />
-              <span className="hud-label">{draft.length}/500</span>
+          <form onSubmit={submit} className="relative border-t border-border/80 bg-background/92 px-3 py-3 sm:px-4 lg:px-6">
+            <div className="mx-auto w-full max-w-5xl">
+              <div className="flex items-stretch gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    value={draft}
+                    maxLength={500}
+                    onChange={(e) => setDraft(e.target.value)}
+                    disabled={expired}
+                    placeholder={expired ? "Lobby expired" : "Message the lobby…"}
+                    aria-label="Message"
+                    className="h-12 w-full border border-border bg-surface/40 px-3 pr-16 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[0.56rem] text-muted-foreground/65">
+                    {draft.length}/500
+                  </span>
+                </div>
+                <button
+                  disabled={expired}
+                  className="tactical-button flex h-12 items-center justify-center gap-2 bg-primary px-4 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-50 sm:px-5"
+                >
+                  <Send className="size-3.5" /> <span className="hidden sm:inline">Send</span>
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <SafetyNote />
+                <span className="hud-label hidden sm:inline">Room code {lobby.code}</span>
+              </div>
             </div>
           </form>
         </main>
       </div>
+    </div>
+  );
+}
+
+function SaltMeter({
+  level,
+  label,
+  className,
+}: {
+  level: number;
+  label: string;
+  className: string;
+}) {
+  return (
+    <div className="flex items-center gap-2" title={`Salt level: ${label}`}>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((segment) => (
+          <span
+            key={segment}
+            className={`h-1.5 w-3 border ${segment <= level ? "border-primary bg-primary" : "border-border bg-background"}`}
+          />
+        ))}
+      </div>
+      <span className={`font-mono text-[0.6rem] uppercase tracking-[0.13em] ${className}`}>{label}</span>
     </div>
   );
 }
@@ -727,37 +875,42 @@ function PlayerList({
   setMuted: (fn: (prev: string[]) => string[]) => void;
 }) {
   const sections: { team: Team; label: string }[] = [
-    { team: "blue", label: "Blue Team" },
-    { team: "red", label: "Red Team" },
+    { team: "blue", label: "Blue team" },
+    { team: "red", label: "Red team" },
     { team: "spectator", label: "Spectators" },
   ];
+
   return (
     <div className="space-y-6">
       {sections.map(({ team, label }) => {
         const tc = teamClasses(team);
         return (
-          <div key={team}>
-            <p className={`hud-label ${tc.text}`}>
-              {label} · {grouped[team].length}
-            </p>
-            <ul className="mt-2 space-y-1">
+          <section key={team}>
+            <div className="flex items-center justify-between">
+              <p className={`hud-label ${tc.text}`}>{label}</p>
+              <span className={`font-mono text-[0.58rem] ${tc.text}`}>{grouped[team].length}</span>
+            </div>
+            <ul className="mt-2 space-y-1.5">
               {grouped[team].length === 0 && (
-                <li className="text-xs text-muted-foreground">empty</li>
+                <li className="border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground/65">No players</li>
               )}
               {grouped[team].map((p) => {
                 const isMuted = muted.includes(p.guest_id);
+                const self = p.guest_id === guestId;
                 return (
                   <li
                     key={p.id}
-                    className={`group flex items-center justify-between gap-2 border-l-2 py-1 pl-2 text-sm ${tc.border}`}
+                    className={`group flex items-center gap-2.5 border border-border/55 bg-surface/25 px-2.5 py-2 ${self ? "border-primary/30 bg-primary/[0.025]" : ""}`}
                   >
-                    <span className="truncate">
-                      {p.nickname}
-                      {p.guest_id === guestId && (
-                        <span className="ml-1 text-xs text-muted-foreground">(you)</span>
-                      )}
+                    <span className={`flex size-7 shrink-0 items-center justify-center border bg-background font-mono text-[0.58rem] font-semibold ${tc.border} ${tc.text}`}>
+                      {initials(p.nickname)}
                     </span>
-                    {p.guest_id !== guestId && (
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {p.nickname}
+                      {self && <span className="ml-1 font-mono text-[0.55rem] uppercase tracking-[0.08em] text-primary">you</span>}
+                    </span>
+                    <span className="size-1.5 shrink-0 bg-primary/80" title="Online" />
+                    {!self && (
                       <button
                         aria-label={isMuted ? `Unmute ${p.nickname}` : `Mute ${p.nickname}`}
                         onClick={() =>
@@ -767,22 +920,32 @@ function PlayerList({
                               : [...prev, p.guest_id],
                           )
                         }
-                        className="text-muted-foreground opacity-60 transition-opacity hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                        className={`text-muted-foreground transition-colors hover:text-foreground ${isMuted ? "text-destructive" : "sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"}`}
                       >
-                        {isMuted ? (
-                          <VolumeX className="size-3.5" />
-                        ) : (
-                          <Volume2 className="size-3.5" />
-                        )}
+                        {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
                       </button>
                     )}
                   </li>
                 );
               })}
             </ul>
-          </div>
+          </section>
         );
       })}
     </div>
   );
+}
+
+function initials(name: string) {
+  const cleaned = name.trim();
+  if (!cleaned) return "?";
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
+  return cleaned.slice(0, 2).toUpperCase();
+}
+
+function teamName(team: Team) {
+  if (team === "blue") return "Blue";
+  if (team === "red") return "Red";
+  return "Spectator";
 }
