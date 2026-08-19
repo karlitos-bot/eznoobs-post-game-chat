@@ -89,9 +89,17 @@ type Reaction = {
   created_at: string;
 };
 type RematchVote = { id: string; guest_id: string };
+type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline";
 
 type LobbySnapshot = {
-  lobby: { id: string; code: string; game: string; expires_at: string; last_activity_at: string };
+  lobby: {
+    id: string;
+    code: string;
+    game: string;
+    expires_at: string;
+    last_activity_at: string;
+    max_players?: number;
+  };
   messages: Message[];
   players: Participant[];
   reactions: Reaction[];
@@ -211,15 +219,24 @@ function JoinGate({
   const [nickname, setNickname] = useState("");
   const [team, setTeam] = useState<Team>("blue");
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     setNickname(lastNickname());
     setTeam(lastTeam());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
+
+  const secondsLeft = secondsUntil(lobby.expires_at, now);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (secondsLeft <= 0) {
+      toast.error("This lobby has expired.");
+      return;
+    }
 
     const nick = nickname.trim();
     if (nick.length < 2) {
@@ -252,8 +269,8 @@ function JoinGate({
         <div className="relative border-b border-border/70 px-5 py-5 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <Logo className="text-xl" />
-            <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.15em] text-primary">
-              <span className="size-1.5 bg-primary signal-pulse" /> Live lobby
+            <span className={`flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.15em] ${timerTextClass(secondsLeft)}`}>
+              <Timer className="size-3.5" /> {formatCountdown(secondsLeft)}
             </span>
           </div>
           <div className="mt-5 flex items-center justify-between gap-4 border-y border-border/60 py-3">
@@ -267,7 +284,7 @@ function JoinGate({
             </div>
           </div>
           <h1 className="mt-5 text-4xl">Drop into comms</h1>
-          <p className="mt-2 text-sm text-muted-foreground">No account. Pick a name and a side.</p>
+          <p className="mt-2 text-sm text-muted-foreground">No account. Pick a name and a side. The clock never resets.</p>
         </div>
 
         <div className="relative space-y-5 px-5 py-5 sm:px-6 sm:py-6">
@@ -281,7 +298,7 @@ function JoinGate({
               autoFocus
               maxLength={20}
               value={nickname}
-              disabled={busy}
+              disabled={busy || secondsLeft <= 0}
               autoComplete="nickname"
               autoCorrect="off"
               spellCheck={false}
@@ -299,7 +316,7 @@ function JoinGate({
                 <button
                   type="button"
                   key={t.value}
-                  disabled={busy}
+                  disabled={busy || secondsLeft <= 0}
                   onClick={() => setTeam(t.value)}
                   className={`min-h-11 border px-2 py-3 font-mono text-[0.64rem] uppercase tracking-[0.11em] transition-all disabled:cursor-wait disabled:opacity-60 ${
                     team === t.value
@@ -318,11 +335,11 @@ function JoinGate({
           </div>
 
           <button
-            disabled={busy}
+            disabled={busy || secondsLeft <= 0}
             aria-busy={busy}
             className="tactical-button flex min-h-12 w-full items-center justify-center gap-2 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:cursor-wait disabled:opacity-60"
           >
-            {busy ? "Connecting…" : "Enter lobby"}
+            {secondsLeft <= 0 ? "Lobby closed" : busy ? "Connecting…" : "Enter lobby"}
           </button>
           <SafetyNote className="border-t border-border/60 pt-4" />
         </div>
@@ -350,9 +367,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const [showPlayers, setShowPlayers] = useState(false);
   const [muted, setMuted] = useState<string[]>([]);
   const [expiresAt, setExpiresAt] = useState(lobby.expires_at);
+  const [maxPlayers, setMaxPlayers] = useState(20);
   const [now, setNow] = useState(() => Date.now());
   const [leaving, setLeaving] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
+    typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "connecting",
+  );
   const endRef = useRef<HTMLDivElement>(null);
+  const clearedAfterExpiry = useRef(false);
 
   useEffect(() => {
     if (!guestId) return;
@@ -361,6 +383,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     let refreshing = false;
     let refreshQueued = false;
+    let channelSubscribed = false;
 
     function applySnapshot(snapshot: LobbySnapshot) {
       setMessages(snapshot.messages);
@@ -368,6 +391,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       setReactions(snapshot.reactions);
       setRematchVotes(snapshot.rematchVotes);
       setExpiresAt(snapshot.lobby.expires_at);
+      setMaxPlayers(snapshot.lobby.max_players ?? 20);
     }
 
     async function refreshState() {
@@ -386,8 +410,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
           return;
         }
         applySnapshot(snapshot as LobbySnapshot);
+        if (typeof navigator === "undefined" || navigator.onLine) {
+          setConnectionState(channelSubscribed ? "connected" : "reconnecting");
+        }
       } catch (err) {
-        if (alive) console.warn("Could not refresh lobby state", err);
+        if (alive) {
+          setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
+          console.warn("Could not refresh lobby state", err);
+        }
       } finally {
         refreshing = false;
         if (alive && refreshQueued) {
@@ -402,34 +432,60 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       refreshTimer = setTimeout(() => void refreshState(), 120);
     }
 
+    function handleOffline() {
+      setConnectionState("offline");
+    }
+
+    function handleOnline() {
+      setConnectionState("reconnecting");
+      void refreshState();
+    }
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
     void refreshState();
 
     const channel = supabase
       .channel(`room:${lobby.code}`)
       .on("broadcast", { event: "db-change" }, scheduleRefresh)
-      .subscribe();
+      .subscribe((status, err) => {
+        if (!alive) return;
+        if (status === "SUBSCRIBED") {
+          channelSubscribed = true;
+          setConnectionState("connected");
+          void refreshState();
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          channelSubscribed = false;
+          setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
+          if (err) console.warn("Realtime channel status", status, err);
+        }
+      });
 
-    const fallbackRefresh = setInterval(() => void refreshState(), 20_000);
+    const fallbackRefresh = setInterval(() => void refreshState(), 10_000);
 
     return () => {
       alive = false;
       if (refreshTimer) clearTimeout(refreshTimer);
       clearInterval(fallbackRefresh);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
       void supabase.removeChannel(channel);
     };
   }, [fetchSnapshot, guestId, lobby.code]);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
     if (!guestId) return;
     const ping = () => void heartbeat({ data: { code: lobby.code, guestId } }).catch(() => {});
     ping();
-    const t = setInterval(ping, 60_000);
-    return () => clearInterval(t);
+    const timer = setInterval(ping, 60_000);
+    return () => clearInterval(timer);
   }, [guestId, lobby.code, heartbeat]);
 
   useEffect(() => {
@@ -444,6 +500,20 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       document.body.style.overflow = previousOverflow;
     };
   }, [showPlayers]);
+
+  const secondsLeft = secondsUntil(expiresAt, now);
+  const expired = secondsLeft <= 0;
+
+  useEffect(() => {
+    if (!expired || clearedAfterExpiry.current) return;
+    clearedAfterExpiry.current = true;
+    setMessages([]);
+    setPlayers([]);
+    setReactions([]);
+    setRematchVotes([]);
+    setDraft("");
+    setShowPlayers(false);
+  }, [expired]);
 
   const activePlayers = useMemo(
     () =>
@@ -497,9 +567,8 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     return { label: "CALM", className: "text-primary", score, level: 1 };
   }, [messages, reactions, now]);
 
-  const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
-  const expired = new Date(expiresAt).getTime() <= now;
   const hasRematchVote = rematchVotes.some((v) => v.guest_id === guestPublicId);
+  const offline = connectionState === "offline";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -507,6 +576,10 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     if (!body) return;
     if (expired) {
       toast.error("This lobby has expired.");
+      return;
+    }
+    if (offline) {
+      toast.error("You're offline. Reconnect before sending.");
       return;
     }
     setDraft("");
@@ -558,7 +631,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }
 
   async function handleReaction(messageId: string, emoji: ReactionName) {
-    if (expired) return;
+    if (expired || offline) return;
     try {
       await react({ data: { code: lobby.code, guestId, messageId, emoji } });
     } catch (err) {
@@ -567,7 +640,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   }
 
   async function handleRematch() {
-    if (expired) return;
+    if (expired || offline) return;
     try {
       const result = await voteRematch({ data: { code: lobby.code, guestId } });
       toast.success(result.active ? "You want the rematch." : "Rematch vote removed.");
@@ -588,6 +661,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     }
   }
 
+  const statusLabel = expired
+    ? "Ended"
+    : connectionState === "offline"
+      ? "Offline"
+      : connectionState === "connected"
+        ? "Live"
+        : "Syncing";
+
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-0 grid-bg opacity-[0.16]" />
@@ -605,24 +686,28 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
           </div>
 
           <div className="ml-auto flex min-w-0 items-center gap-2">
+            <div className={`flex min-h-10 items-center gap-1.5 border px-2.5 font-mono text-sm font-semibold tracking-[0.08em] ${timerBoxClass(secondsLeft)}`} title="Time until this temporary lobby closes">
+              <Timer className="size-3.5" />
+              <span className={secondsLeft <= 10 && !expired ? "signal-pulse" : ""}>{formatCountdown(secondsLeft)}</span>
+            </div>
             <div className="flex min-h-10 items-center border border-primary/30 bg-primary/[0.04] px-2 sm:px-2.5">
               <Hash className="mr-1 size-3 text-primary sm:mr-1.5 sm:size-3.5" />
               <span className="font-mono text-xs tracking-[0.18em] text-primary sm:text-base sm:tracking-[0.22em]">{lobby.code}</span>
             </div>
             <span
-              className={`flex min-h-10 items-center gap-1.5 px-1 font-mono text-[0.56rem] uppercase tracking-[0.12em] sm:text-[0.6rem] sm:tracking-[0.15em] ${
-                expired ? "text-destructive" : "text-primary"
+              className={`hidden min-h-10 items-center gap-1.5 px-1 font-mono text-[0.56rem] uppercase tracking-[0.12em] sm:flex sm:text-[0.6rem] sm:tracking-[0.15em] ${
+                expired || offline ? "text-destructive" : connectionState === "connected" ? "text-primary" : "text-yellow-300"
               }`}
             >
-              <span className={`size-1.5 shrink-0 ${expired ? "bg-destructive" : "bg-primary signal-pulse"}`} />
-              {expired ? "Ended" : "Live"}
+              <span className={`size-1.5 shrink-0 ${expired || offline ? "bg-destructive" : connectionState === "connected" ? "bg-primary signal-pulse" : "bg-yellow-300 signal-pulse"}`} />
+              {statusLabel}
             </span>
             <button
               onClick={() => setShowPlayers(true)}
-              aria-label={`Open player list, ${activePlayers.length} online`}
+              aria-label={`Open player list, ${activePlayers.length} of ${maxPlayers} online`}
               className="touch-target flex items-center justify-center gap-1.5 border border-border bg-surface/40 px-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-muted-foreground lg:hidden"
             >
-              <Users className="size-3.5" /> {activePlayers.length}
+              <Users className="size-3.5" /> {activePlayers.length}/{maxPlayers}
             </button>
           </div>
         </div>
@@ -638,13 +723,13 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               <div className="hidden shrink-0 items-center gap-2 border-r border-border/70 pr-3 md:flex">
                 <Timer className="size-3.5 text-muted-foreground" />
                 <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
-                  {expired ? "Read-only" : `~${minutesLeft}m idle`}
+                  Fixed lifetime · no reset
                 </span>
               </div>
               <div className="hidden shrink-0 items-center gap-2 border-r border-border/70 pr-3 lg:flex">
                 <Users className="size-3.5 text-muted-foreground" />
                 <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
-                  {activePlayers.length} online
+                  {activePlayers.length}/{maxPlayers} online
                 </span>
               </div>
             </div>
@@ -662,7 +747,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             </button>
             <button
               onClick={handleRematch}
-              disabled={expired}
+              disabled={expired || offline}
               aria-label="Vote for a rematch"
               title="Run it back"
               className={`flex min-h-10 items-center gap-1.5 border px-2.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] transition-all disabled:opacity-40 sm:px-3 sm:text-[0.62rem] sm:tracking-[0.12em] ${
@@ -697,8 +782,8 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                 <p className="hud-label text-primary">Roster</p>
                 <h2 className="mt-1 text-xl">Players online</h2>
               </div>
-              <span className="flex size-9 items-center justify-center border border-border bg-surface/40 font-mono text-xs text-primary">
-                {activePlayers.length}
+              <span className="flex h-9 min-w-12 items-center justify-center border border-border bg-surface/40 px-2 font-mono text-xs text-primary">
+                {activePlayers.length}/{maxPlayers}
               </span>
             </div>
           </div>
@@ -718,7 +803,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
                 <div>
                   <p className="hud-label text-primary">Roster</p>
-                  <h2 className="mt-1 text-xl">{activePlayers.length} online</h2>
+                  <h2 className="mt-1 text-xl">{activePlayers.length}/{maxPlayers} online</h2>
                 </div>
                 <button
                   onClick={() => setShowPlayers(false)}
@@ -736,9 +821,19 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         )}
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-background/45">
+          {!expired && connectionState !== "connected" && (
+            <div className={`border-b px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] ${offline ? "border-destructive/30 bg-destructive/[0.06] text-destructive" : "border-yellow-300/30 bg-yellow-300/[0.04] text-yellow-300"}`}>
+              {offline ? "Connection lost · Check your internet · Your draft is safe" : "Reconnecting · Syncing lobby state"}
+            </div>
+          )}
+          {!expired && secondsLeft <= 60 && (
+            <div className={`border-b px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] ${secondsLeft <= 10 ? "border-destructive/30 bg-destructive/[0.08] text-destructive" : "border-yellow-300/30 bg-yellow-300/[0.04] text-yellow-300"}`}>
+              {secondsLeft <= 10 ? `Lobby closes in ${secondsLeft}` : `Final minute · ${formatCountdown(secondsLeft)} remaining`}
+            </div>
+          )}
           {expired && (
-            <div className="border-b border-destructive/30 bg-destructive/[0.06] px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-destructive">
-              Lobby expired · Chat is now read-only
+            <div className="border-b border-destructive/30 bg-destructive/[0.06] px-4 py-3 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-destructive">
+              00:00 · Lobby closed · Temporary chat cleared
             </div>
           )}
           {!expired && rematchVotes.length >= 2 && (
@@ -753,13 +848,24 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               <div className="mb-5 flex items-end justify-between border-b border-border/60 pb-3">
                 <div>
                   <p className="hud-label text-primary">Open channel</p>
-                  <h2 className="mt-1 text-2xl">Post-match chat</h2>
+                  <h2 className="mt-1 text-2xl">{expired ? "Lobby closed" : "Post-match chat"}</h2>
                 </div>
-                <span className="hud-label hidden sm:block">{visible.length} messages visible</span>
+                <span className="hud-label hidden sm:block">{expired ? "Temporary by design" : `${visible.length} messages visible`}</span>
               </div>
 
               <div className="space-y-1.5">
-                {visible.length === 0 && (
+                {expired && (
+                  <div className="ez-panel border-dashed p-7 text-center sm:p-12">
+                    <Timer className="mx-auto size-6 text-destructive" />
+                    <p className="mt-4 display text-2xl">Time&apos;s up</p>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">This temporary lobby has closed. Queue the next match or create another room.</p>
+                    <Link to="/" className="tactical-button mt-6 inline-flex min-h-11 items-center bg-primary px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground">
+                      Back to EZNOOBS
+                    </Link>
+                  </div>
+                )}
+
+                {!expired && visible.length === 0 && (
                   <div className="ez-panel border-dashed p-6 text-center sm:p-10">
                     <Radio className="mx-auto size-5 text-primary" />
                     <p className="mt-4 display text-xl">Channel is quiet</p>
@@ -767,16 +873,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                   </div>
                 )}
 
-                {visible.map((m) => {
+                {!expired && visible.map((m) => {
                   const tc = teamClasses(m.team);
                   const messageReactions = reactionsByMessage.get(m.id) ?? [];
                   const own = m.guest_id === guestPublicId;
                   return (
                     <article
                       key={m.id}
-                      className={`msg-in group/msg relative border border-transparent px-2 py-3 transition-colors hover:border-border/70 hover:bg-surface/30 sm:px-3 ${
-                        own ? "bg-primary/[0.018]" : ""
-                      }`}
+                      className={`msg-in group/msg relative border border-transparent px-2 py-3 transition-colors hover:border-border/70 hover:bg-surface/30 sm:px-3 ${own ? "bg-primary/[0.018]" : ""}`}
                     >
                       <span className={`absolute bottom-3 left-0 top-3 w-[2px] ${m.team === "blue" ? "bg-blue-team" : m.team === "red" ? "bg-red-team" : "bg-spectator"}`} />
                       <div className="flex gap-3 sm:gap-4">
@@ -790,9 +894,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                             {own && (
                               <span className="border border-primary/25 bg-primary/[0.04] px-1.5 py-0.5 font-mono text-[0.52rem] uppercase tracking-[0.12em] text-primary">You</span>
                             )}
-                            <span className="font-mono text-[0.58rem] uppercase tracking-[0.1em] text-muted-foreground">
-                              {teamName(m.team)}
-                            </span>
+                            <span className="font-mono text-[0.58rem] uppercase tracking-[0.1em] text-muted-foreground">{teamName(m.team)}</span>
                             <span className="ml-auto font-mono text-[0.58rem] text-muted-foreground/70">
                               {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
@@ -803,14 +905,12 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-1.5 sm:min-h-7">
                             {REACTIONS.map((item) => {
                               const count = messageReactions.filter((r) => r.emoji === item.value).length;
-                              const active = messageReactions.some(
-                                (r) => r.emoji === item.value && r.guest_id === guestPublicId,
-                              );
+                              const active = messageReactions.some((r) => r.emoji === item.value && r.guest_id === guestPublicId);
                               return (
                                 <button
                                   key={item.value}
                                   type="button"
-                                  disabled={expired}
+                                  disabled={expired || offline}
                                   onClick={() => handleReaction(m.id, item.value)}
                                   aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
                                   title={item.title}
@@ -833,14 +933,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                                 aria-label={`Report message from ${m.nickname}`}
                                 title={`Report ${m.nickname}`}
                                 onClick={() =>
-                                  report({
-                                    data: {
-                                      code: lobby.code,
-                                      guestId,
-                                      messageId: m.id,
-                                      reason: "abuse",
-                                    },
-                                  })
+                                  report({ data: { code: lobby.code, guestId, messageId: m.id, reason: "abuse" } })
                                     .then(() => toast.success("Reported. Thanks."))
                                     .catch(() => toast.error("Could not report that message."))
                                 }
@@ -870,17 +963,15 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                     maxLength={500}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleComposerKeyDown}
-                    disabled={expired}
-                    placeholder={expired ? "Lobby expired" : "Message the lobby…"}
+                    disabled={expired || offline}
+                    placeholder={expired ? "Lobby closed" : offline ? "Connection lost — reconnecting…" : "Message the lobby…"}
                     aria-label="Message"
                     className="min-h-12 max-h-28 w-full resize-none border border-border bg-surface/40 px-3 py-3 pr-14 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50"
                   />
-                  <span className="pointer-events-none absolute bottom-2.5 right-3 font-mono text-[0.56rem] text-muted-foreground/65">
-                    {draft.length}/500
-                  </span>
+                  <span className="pointer-events-none absolute bottom-2.5 right-3 font-mono text-[0.56rem] text-muted-foreground/65">{draft.length}/500</span>
                 </div>
                 <button
-                  disabled={expired || !draft.trim()}
+                  disabled={expired || offline || !draft.trim()}
                   aria-label="Send message"
                   className="tactical-button flex min-h-12 min-w-12 items-center justify-center gap-2 bg-primary px-3 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
                 >
@@ -899,23 +990,12 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   );
 }
 
-function SaltMeter({
-  level,
-  label,
-  className,
-}: {
-  level: number;
-  label: string;
-  className: string;
-}) {
+function SaltMeter({ level, label, className }: { level: number; label: string; className: string }) {
   return (
     <div className="flex items-center gap-2" title={`Salt level: ${label}`}>
       <div className="flex gap-1">
         {[1, 2, 3, 4].map((segment) => (
-          <span
-            key={segment}
-            className={`h-1.5 w-3 border ${segment <= level ? "border-primary bg-primary" : "border-border bg-background"}`}
-          />
+          <span key={segment} className={`h-1.5 w-3 border ${segment <= level ? "border-primary bg-primary" : "border-border bg-background"}`} />
         ))}
       </div>
       <span className={`font-mono text-[0.6rem] uppercase tracking-[0.13em] ${className}`}>{label}</span>
@@ -995,6 +1075,30 @@ function PlayerList({
       })}
     </div>
   );
+}
+
+function secondsUntil(expiresAt: string, now: number) {
+  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000));
+}
+
+function formatCountdown(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}:${String(remaining).padStart(2, "0")}`;
+}
+
+function timerTextClass(seconds: number) {
+  if (seconds <= 10) return "text-destructive";
+  if (seconds <= 30) return "text-orange-400";
+  if (seconds <= 60) return "text-yellow-300";
+  return "text-primary";
+}
+
+function timerBoxClass(seconds: number) {
+  if (seconds <= 10) return "border-destructive/60 bg-destructive/[0.08] text-destructive";
+  if (seconds <= 30) return "border-orange-400/45 bg-orange-400/[0.05] text-orange-400";
+  if (seconds <= 60) return "border-yellow-300/40 bg-yellow-300/[0.04] text-yellow-300";
+  return "border-primary/30 bg-primary/[0.04] text-primary";
 }
 
 function initials(name: string) {
