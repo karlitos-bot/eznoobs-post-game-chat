@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
+import { getLobbySnapshot } from "@/lib/lobby-state.functions";
 import {
   getLobby,
   joinLobby,
@@ -88,6 +89,15 @@ type Reaction = {
   created_at: string;
 };
 type RematchVote = { id: string; guest_id: string };
+
+type LobbySnapshot = {
+  lobby: { id: string; code: string; game: string; expires_at: string; last_activity_at: string };
+  messages: Message[];
+  players: Participant[];
+  reactions: Reaction[];
+  rematchVotes: RematchVote[];
+  syncedAt: string;
+};
 
 const REACTIONS: { value: ReactionName; label: string; title: string }[] = [
   { value: "GG", label: "GG", title: "Good game" },
@@ -328,6 +338,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const react = useServerFn(toggleReaction);
   const voteRematch = useServerFn(toggleRematchVote);
   const leave = useServerFn(leaveLobby);
+  const fetchSnapshot = useServerFn(getLobbySnapshot);
   const guestPublicId = getGuestPublicId(guestId);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -344,84 +355,69 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!guestId) return;
+
     let alive = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    let refreshing = false;
+    let refreshQueued = false;
 
-    async function refreshPlayers() {
-      const { data } = await supabase
-        .from("participants")
-        .select("id, guest_id, nickname, team, last_seen_at")
-        .eq("lobby_id", lobby.id);
-      if (alive) setPlayers((data ?? []) as Participant[]);
+    function applySnapshot(snapshot: LobbySnapshot) {
+      setMessages(snapshot.messages);
+      setPlayers(snapshot.players);
+      setReactions(snapshot.reactions);
+      setRematchVotes(snapshot.rematchVotes);
+      setExpiresAt(snapshot.lobby.expires_at);
     }
 
-    async function refreshReactions() {
-      const { data } = await supabase
-        .from("reactions")
-        .select("id, message_id, guest_id, emoji, created_at")
-        .eq("lobby_id", lobby.id);
-      if (alive) setReactions((data ?? []) as Reaction[]);
+    async function refreshState() {
+      if (!alive) return;
+      if (refreshing) {
+        refreshQueued = true;
+        return;
+      }
+
+      refreshing = true;
+      try {
+        const snapshot = await fetchSnapshot({ data: { code: lobby.code, guestId } });
+        if (!alive) return;
+        if (!snapshot) {
+          setExpiresAt(new Date().toISOString());
+          return;
+        }
+        applySnapshot(snapshot as LobbySnapshot);
+      } catch (err) {
+        if (alive) console.warn("Could not refresh lobby state", err);
+      } finally {
+        refreshing = false;
+        if (alive && refreshQueued) {
+          refreshQueued = false;
+          void refreshState();
+        }
+      }
     }
 
-    async function refreshRematchVotes() {
-      const { data } = await supabase
-        .from("rematch_votes")
-        .select("id, guest_id")
-        .eq("lobby_id", lobby.id);
-      if (alive) setRematchVotes((data ?? []) as RematchVote[]);
+    function scheduleRefresh() {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => void refreshState(), 120);
     }
 
-    async function load() {
-      const { data } = await supabase
-        .from("messages")
-        .select("id, guest_id, nickname, team, body, created_at")
-        .eq("lobby_id", lobby.id)
-        .order("created_at", { ascending: true })
-        .limit(200);
-      if (alive) setMessages((data ?? []) as Message[]);
-      await Promise.all([refreshPlayers(), refreshReactions(), refreshRematchVotes()]);
-    }
-
-    void load();
+    void refreshState();
 
     const channel = supabase
-      .channel(`lobby-${lobby.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `lobby_id=eq.${lobby.id}` },
-        (payload) =>
-          setMessages((prev) =>
-            prev.some((m) => m.id === (payload.new as Message).id)
-              ? prev
-              : [...prev, payload.new as Message],
-          ),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "participants", filter: `lobby_id=eq.${lobby.id}` },
-        () => void refreshPlayers(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reactions", filter: `lobby_id=eq.${lobby.id}` },
-        () => void refreshReactions(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rematch_votes", filter: `lobby_id=eq.${lobby.id}` },
-        () => void refreshRematchVotes(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "lobbies", filter: `id=eq.${lobby.id}` },
-        (payload) => setExpiresAt((payload.new as Lobby).expires_at),
-      )
+      .channel(`room:${lobby.code}`)
+      .on("broadcast", { event: "db-change" }, scheduleRefresh)
       .subscribe();
+
+    const fallbackRefresh = setInterval(() => void refreshState(), 20_000);
 
     return () => {
       alive = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      clearInterval(fallbackRefresh);
       void supabase.removeChannel(channel);
     };
-  }, [lobby.id]);
+  }, [fetchSnapshot, guestId, lobby.code]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
