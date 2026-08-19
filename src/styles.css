@@ -39,47 +39,61 @@
 
 :root {
   --radius: 3px;
-  --background: oklch(0.16 0.008 260);
-  --foreground: oklch(0.95 0.005 100);
-  --surface: oklch(0.20 0.008 260);
-  --card: oklch(0.20 0.008 260);
-  --card-foreground: oklch(0.95 0.005 100);
-  --popover: oklch(0.20 0.008 260);
-  --popover-foreground: oklch(0.95 0.005 100);
-  --primary: oklch(0.88 0.23 128);
-  --primary-foreground: oklch(0.17 0.02 130);
-  --secondary: oklch(0.26 0.01 260);
+  --background: oklch(0.125 0.008 260);
+  --foreground: oklch(0.955 0.005 100);
+  --surface: oklch(0.165 0.009 260);
+  --card: oklch(0.175 0.009 260);
+  --card-foreground: oklch(0.955 0.005 100);
+  --popover: oklch(0.18 0.009 260);
+  --popover-foreground: oklch(0.955 0.005 100);
+  --primary: oklch(0.88 0.225 128);
+  --primary-foreground: oklch(0.15 0.025 130);
+  --secondary: oklch(0.225 0.012 260);
   --secondary-foreground: oklch(0.95 0.005 100);
-  --muted: oklch(0.24 0.008 260);
-  --muted-foreground: oklch(0.66 0.012 260);
-  --accent: oklch(0.28 0.012 260);
-  --accent-foreground: oklch(0.95 0.005 100);
-  --destructive: oklch(0.62 0.22 25);
+  --muted: oklch(0.21 0.009 260);
+  --muted-foreground: oklch(0.63 0.015 260);
+  --accent: oklch(0.245 0.015 260);
+  --accent-foreground: oklch(0.955 0.005 100);
+  --destructive: oklch(0.63 0.22 25);
   --destructive-foreground: oklch(0.97 0.005 100);
-  --border: oklch(0.30 0.010 260);
-  --input: oklch(0.30 0.010 260);
-  --ring: oklch(0.88 0.23 128);
-  --blue-team: oklch(0.70 0.16 245);
-  --red-team: oklch(0.66 0.20 22);
-  --spectator: oklch(0.72 0.02 260);
+  --border: oklch(0.275 0.013 260);
+  --input: oklch(0.29 0.012 260);
+  --ring: oklch(0.88 0.225 128);
+  --blue-team: oklch(0.70 0.17 245);
+  --red-team: oklch(0.67 0.205 22);
+  --spectator: oklch(0.73 0.02 260);
 }
 
 .dark { color-scheme: dark; }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { color-scheme: dark; }
+  html {
+    color-scheme: dark;
+    background: var(--background);
+  }
   body {
+    min-height: 100vh;
+    margin: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, .display {
     font-family: var(--font-display);
     text-transform: uppercase;
     letter-spacing: 0.02em;
     font-weight: 700;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 78%, transparent);
+    color: var(--primary-foreground);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
 }
 
@@ -93,20 +107,110 @@
 
 @utility grid-bg {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px);
-  background-size: 56px 56px;
+    linear-gradient(to right, color-mix(in oklab, var(--border) 48%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--border) 48%, transparent) 1px, transparent 1px);
+  background-size: 54px 54px;
+}
+
+@utility micro-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--border) 32%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--border) 32%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
 @utility radar-glow {
-  background: radial-gradient(60% 55% at 50% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%);
+  background:
+    radial-gradient(62% 55% at 50% 0%, color-mix(in oklab, var(--primary) 13%, transparent), transparent 72%),
+    radial-gradient(42% 36% at 88% 62%, color-mix(in oklab, var(--blue-team) 6%, transparent), transparent 76%);
 }
 
+@utility scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    color-mix(in oklab, var(--foreground) 2%, transparent) 4px
+  );
+}
+
+@utility ez-panel {
+  position: relative;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--surface) 92%, transparent), color-mix(in oklab, var(--background) 90%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 4%, transparent),
+    0 18px 70px color-mix(in oklab, black 26%, transparent);
+}
+
+@utility ez-panel-strong {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--border) 88%, var(--primary) 12%);
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--surface) 98%, transparent), color-mix(in oklab, var(--background) 94%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 5%, transparent),
+    0 24px 90px color-mix(in oklab, black 34%, transparent);
+}
+
+@utility corner-cut {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+@utility soft-glow {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent), 0 0 36px color-mix(in oklab, var(--primary) 9%, transparent);
+}
+
+@utility team-blue-glow {
+  box-shadow: inset 3px 0 0 var(--blue-team), inset 20px 0 42px color-mix(in oklab, var(--blue-team) 5%, transparent);
+}
+
+@utility team-red-glow {
+  box-shadow: inset 3px 0 0 var(--red-team), inset 20px 0 42px color-mix(in oklab, var(--red-team) 5%, transparent);
+}
+
+@utility tactical-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.tactical-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateX(-105%);
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, white 13%, transparent), transparent);
+  transition: transform 280ms ease;
+}
+
+.tactical-button:hover::after { transform: translateX(105%); }
+
 @keyframes msg-in {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes signal-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
 @utility msg-in {
   animation: msg-in 160ms ease-out both;
+}
+
+@utility rise-in {
+  animation: rise-in 420ms cubic-bezier(.22,.8,.32,1) both;
+}
+
+@utility signal-pulse {
+  animation: signal-pulse 1.6s ease-in-out infinite;
 }
