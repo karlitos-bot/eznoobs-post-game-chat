@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -16,14 +16,16 @@ import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
 import { createLobby } from "@/lib/lobby.functions";
 import {
+  CODE_RE,
   GAMES,
   TEAMS,
-  type Team,
   getGuestId,
+  lastGame,
   lastNickname,
+  lastTeam,
   normalizeCode,
-  rememberNickname,
-  CODE_RE,
+  rememberLobbyPreferences,
+  type Team,
 } from "@/lib/eznoobs";
 
 export const Route = createFileRoute("/")({
@@ -54,18 +56,28 @@ function Home() {
   const [team, setTeam] = useState<Team>("blue");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const joinReady = CODE_RE.test(code);
+
+  useEffect(() => {
+    setGame(lastGame());
+    setNickname(lastNickname());
+    setTeam(lastTeam());
+  }, []);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+
     const nick = nickname.trim();
     if (nick.length < 2) {
       toast.error("Nickname needs at least 2 characters.");
       return;
     }
+
     setBusy(true);
     try {
-      rememberNickname(nick);
       const res = await create({ data: { game, nickname: nick, team, guestId: getGuestId() } });
+      rememberLobbyPreferences({ nickname: nick, game, team });
       navigate({ to: "/room/$code", params: { code: res.code } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create lobby.");
@@ -85,7 +97,6 @@ function Home() {
   }
 
   function focusCreate() {
-    setNickname((n) => n || lastNickname());
     document.getElementById("create-lobby")?.scrollIntoView({ behavior: "smooth", block: "center" });
     window.setTimeout(() => document.getElementById("nick")?.focus(), 450);
   }
@@ -139,11 +150,11 @@ function Home() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <button
                   onClick={focusCreate}
-                  className="tactical-button flex items-center gap-3 bg-primary px-5 py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  className="tactical-button flex min-h-11 items-center gap-3 bg-primary px-5 py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground transition-transform hover:-translate-y-0.5"
                 >
                   Create lobby <ArrowRight className="size-4" />
                 </button>
-                <div className="flex items-center border border-border bg-surface/55 px-4 py-3">
+                <div className="flex min-h-11 items-center border border-border bg-surface/55 px-4 py-3">
                   <Users className="mr-2 size-4 text-primary" />
                   <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
                     Built for both teams
@@ -181,7 +192,7 @@ function Home() {
                 <Zap className="mt-1 size-5 text-primary" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Pick the game, your name and your side. You&apos;ll be inside in seconds.
+                Pick the game, your name and your side. Your last setup is remembered on this device.
               </p>
             </div>
 
@@ -194,8 +205,9 @@ function Home() {
                 <select
                   id="game"
                   value={game}
+                  disabled={busy}
                   onChange={(e) => setGame(e.target.value)}
-                  className="w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors focus:border-primary"
+                  className="min-h-11 w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors focus:border-primary disabled:cursor-wait disabled:opacity-60"
                 >
                   {GAMES.map((g) => (
                     <option key={g} value={g}>{g}</option>
@@ -212,9 +224,14 @@ function Home() {
                   id="nick"
                   value={nickname}
                   maxLength={20}
+                  disabled={busy}
+                  autoComplete="nickname"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="ghostpeek"
-                  className="w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary"
+                  className="min-h-11 w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary disabled:cursor-wait disabled:opacity-60"
                 />
               </div>
 
@@ -228,8 +245,9 @@ function Home() {
                     <button
                       type="button"
                       key={t.value}
+                      disabled={busy}
                       onClick={() => setTeam(t.value)}
-                      className={`relative overflow-hidden border px-2 py-3 font-mono text-[0.66rem] uppercase tracking-[0.11em] transition-all ${
+                      className={`relative min-h-11 overflow-hidden border px-2 py-3 font-mono text-[0.66rem] uppercase tracking-[0.11em] transition-all disabled:cursor-wait disabled:opacity-60 ${
                         team === t.value
                           ? t.value === "blue"
                             ? "border-blue-team bg-blue-team/[0.08] text-blue-team"
@@ -247,7 +265,8 @@ function Home() {
 
               <button
                 disabled={busy}
-                className="tactical-button flex w-full items-center justify-center gap-3 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-60"
+                aria-busy={busy}
+                className="tactical-button flex min-h-12 w-full items-center justify-center gap-3 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:cursor-wait disabled:opacity-60"
               >
                 {busy ? "Spinning up channel…" : "Create & enter"}
                 {!busy && <ArrowRight className="size-4" />}
@@ -271,12 +290,32 @@ function Home() {
                   placeholder="XEL34"
                   maxLength={5}
                   aria-label="Room code"
-                  className="min-w-0 flex-1 border border-border bg-background px-3 py-3 text-center font-mono text-base uppercase tracking-[0.34em] outline-none transition-colors placeholder:tracking-[0.28em] placeholder:text-muted-foreground/35 focus:border-primary"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode="text"
+                  enterKeyHint="go"
+                  className={`min-h-11 min-w-0 flex-1 border bg-background px-3 py-3 text-center font-mono text-base uppercase tracking-[0.34em] outline-none transition-colors placeholder:tracking-[0.28em] placeholder:text-muted-foreground/35 ${
+                    joinReady
+                      ? "border-primary text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
+                      : "border-border focus:border-primary"
+                  }`}
                 />
-                <button className="flex items-center gap-2 border border-border bg-surface px-4 py-3 font-mono text-[0.68rem] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                <button
+                  disabled={!joinReady}
+                  aria-disabled={!joinReady}
+                  className={`flex min-h-11 items-center gap-2 border px-4 py-3 font-mono text-[0.68rem] uppercase tracking-[0.15em] transition-colors ${
+                    joinReady
+                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "cursor-not-allowed border-border bg-surface text-muted-foreground/45"
+                  }`}
+                >
                   Join <ArrowRight className="size-3.5" />
                 </button>
               </form>
+              <p className={`mt-2 font-mono text-[0.58rem] uppercase tracking-[0.12em] ${joinReady ? "text-primary" : "text-muted-foreground/55"}`}>
+                {joinReady ? "Code locked · ready to connect" : `${code.length}/5 characters`}
+              </p>
             </div>
           </section>
         </div>
