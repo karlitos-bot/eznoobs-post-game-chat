@@ -19,9 +19,10 @@ import {
   X,
 } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { GameMark } from "@/components/eznoobs/GameMark";
 import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
+import { supabase } from "@/integrations/supabase/client";
 import { getLobbySnapshot } from "@/lib/lobby-state.functions";
 import {
   getLobby,
@@ -90,6 +91,7 @@ type Reaction = {
 };
 type RematchVote = { id: string; guest_id: string };
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline";
+type ReactionBurst = { id: number; messageId: string; label: string };
 
 type LobbySnapshot = {
   lobby: {
@@ -278,9 +280,12 @@ function JoinGate({
               <p className="hud-label">Room code</p>
               <p className="mt-1 font-mono text-2xl tracking-[0.26em] text-primary">{lobby.code}</p>
             </div>
-            <div className="min-w-0 text-right">
-              <p className="hud-label">Game</p>
-              <p className="mt-1 truncate text-sm text-foreground">{lobby.game}</p>
+            <div className="flex min-w-0 items-center gap-2 text-right">
+              <div className="min-w-0">
+                <p className="hud-label">Game</p>
+                <p className="mt-1 truncate text-sm text-foreground">{lobby.game}</p>
+              </div>
+              <GameMark game={lobby.game} compact />
             </div>
           </div>
           <h1 className="mt-5 text-4xl">Drop into comms</h1>
@@ -370,6 +375,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [now, setNow] = useState(() => Date.now());
   const [leaving, setLeaving] = useState(false);
+  const [reactionBurst, setReactionBurst] = useState<ReactionBurst | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
     typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "connecting",
   );
@@ -549,25 +555,31 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
   const salt = useMemo(() => {
     const minuteAgo = now - 60_000;
-    const messageScore = messages.filter(
+    const recentMessages = messages.filter(
       (m) => new Date(m.created_at).getTime() >= minuteAgo,
-    ).length;
+    );
+    const recentChatters = new Set(recentMessages.map((m) => m.guest_id)).size;
+    const messageScore = recentMessages.length;
     const reactionScore = reactions.reduce((score, reaction) => {
       if (new Date(reaction.created_at).getTime() < minuteAgo) return score;
-      if (reaction.emoji === "salt") return score + 3;
-      if (reaction.emoji === "clown") return score + 2;
+      if (reaction.emoji === "salt") return score + 4;
+      if (reaction.emoji === "clown") return score + 3;
       if (reaction.emoji === "skull") return score + 1;
       return score;
     }, 0);
-    const score = messageScore + reactionScore;
+    const rematchScore = Math.min(rematchVotes.length * 2, 8);
+    const chatterBonus = Math.max(0, Math.min(recentChatters - 2, 4));
+    const score = messageScore + reactionScore + rematchScore + chatterBonus;
 
-    if (score > 20) return { label: "NUCLEAR", className: "text-red-400", score, level: 4 };
-    if (score > 11) return { label: "SPICY", className: "text-orange-400", score, level: 3 };
-    if (score > 4) return { label: "WARM", className: "text-yellow-300", score, level: 2 };
+    if (score >= 24) return { label: "NUCLEAR", className: "text-red-400", score, level: 4 };
+    if (score >= 14) return { label: "SPICY", className: "text-orange-400", score, level: 3 };
+    if (score >= 6) return { label: "WARM", className: "text-yellow-300", score, level: 2 };
     return { label: "CALM", className: "text-primary", score, level: 1 };
-  }, [messages, reactions, now]);
+  }, [messages, reactions, rematchVotes.length, now]);
 
   const hasRematchVote = rematchVotes.some((v) => v.guest_id === guestPublicId);
+  const rematchTarget = Math.max(2, Math.ceil(Math.max(activePlayers.length, 2) / 2));
+  const rematchReady = rematchVotes.length >= rematchTarget;
   const offline = connectionState === "offline";
 
   async function submit(e: React.FormEvent) {
@@ -633,7 +645,15 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   async function handleReaction(messageId: string, emoji: ReactionName) {
     if (expired || offline) return;
     try {
-      await react({ data: { code: lobby.code, guestId, messageId, emoji } });
+      const result = await react({ data: { code: lobby.code, guestId, messageId, emoji } });
+      if (result.active) {
+        const item = REACTIONS.find((reaction) => reaction.value === emoji);
+        const id = Date.now();
+        setReactionBurst({ id, messageId, label: item?.label ?? emoji });
+        window.setTimeout(() => {
+          setReactionBurst((current) => (current?.id === id ? null : current));
+        }, 650);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Reaction failed.");
     }
@@ -643,7 +663,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     if (expired || offline) return;
     try {
       const result = await voteRematch({ data: { code: lobby.code, guestId } });
-      toast.success(result.active ? "You want the rematch." : "Rematch vote removed.");
+      toast.success(result.active ? "Runback vote locked in." : "Runback vote removed.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Rematch vote failed.");
     }
@@ -679,9 +699,12 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
           <div className="flex min-w-0 items-center gap-3">
             <Logo className="shrink-0 text-lg sm:text-xl" />
             <span className="hidden h-5 w-px bg-border md:block" />
-            <div className="hidden min-w-0 md:block">
-              <p className="hud-label">Post-match lobby</p>
-              <p className="truncate text-xs text-foreground/80">{lobby.game}</p>
+            <div className="hidden min-w-0 items-center gap-2 md:flex">
+              <GameMark game={lobby.game} compact />
+              <div className="min-w-0">
+                <p className="hud-label">Post-match lobby</p>
+                <p className="truncate text-xs text-foreground/80">{lobby.game}</p>
+              </div>
             </div>
           </div>
 
@@ -714,11 +737,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
         <div className="flex min-h-12 items-center gap-2 border-t border-border/60 bg-surface/25 px-3 py-1.5 sm:px-4 lg:px-5">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-foreground/75 sm:hidden">{lobby.game}</p>
+            <div className="flex items-center gap-2 sm:hidden">
+              <GameMark game={lobby.game} compact />
+              <p className="truncate text-xs text-foreground/75">{lobby.game}</p>
+            </div>
             <div className="hidden items-center gap-3 sm:flex">
               <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
                 <span className="hud-label">Salt</span>
-                <SaltMeter level={salt.level} label={salt.label} className={salt.className} />
+                <SaltMeter level={salt.level} label={salt.label} score={salt.score} className={salt.className} />
               </div>
               <div className="hidden shrink-0 items-center gap-2 border-r border-border/70 pr-3 md:flex">
                 <Timer className="size-3.5 text-muted-foreground" />
@@ -758,7 +784,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             >
               <RotateCcw className="size-3.5" />
               <span className="hidden sm:inline">Run it back</span>
-              {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}</span>}
+              {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}/{rematchTarget}</span>}
             </button>
             <button
               onClick={handleLeave}
@@ -836,9 +862,18 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               00:00 · Lobby closed · Temporary chat cleared
             </div>
           )}
-          {!expired && rematchVotes.length >= 2 && (
-            <div className="flex items-center justify-center gap-2 border-b border-primary/30 bg-primary/[0.05] px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-primary">
-              <Swords className="size-3.5" /> {rematchVotes.length} players want the runback · Queue it up
+          {!expired && rematchVotes.length > 0 && (
+            <div
+              className={`flex items-center justify-center gap-2 border-b px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] ${
+                rematchReady
+                  ? "runback-ready border-primary/50 bg-primary/[0.08] text-primary"
+                  : "border-primary/25 bg-primary/[0.035] text-primary/85"
+              }`}
+            >
+              <Swords className="size-3.5" />
+              {rematchReady
+                ? `Runback locked · ${rematchVotes.length}/${activePlayers.length || rematchVotes.length} players want another`
+                : `${rematchVotes.length}/${rematchTarget} want the runback`}
             </div>
           )}
 
@@ -883,6 +918,11 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                       className={`msg-in group/msg relative border border-transparent px-2 py-3 transition-colors hover:border-border/70 hover:bg-surface/30 sm:px-3 ${own ? "bg-primary/[0.018]" : ""}`}
                     >
                       <span className={`absolute bottom-3 left-0 top-3 w-[2px] ${m.team === "blue" ? "bg-blue-team" : m.team === "red" ? "bg-red-team" : "bg-spectator"}`} />
+                      {reactionBurst?.messageId === m.id && (
+                        <span key={reactionBurst.id} className="reaction-burst pointer-events-none absolute right-3 top-1 z-20 font-mono text-sm font-bold text-primary">
+                          {reactionBurst.label}
+                        </span>
+                      )}
                       <div className="flex gap-3 sm:gap-4">
                         <div className={`mt-0.5 flex size-9 shrink-0 items-center justify-center border bg-background font-mono text-[0.68rem] font-semibold uppercase ${tc.border} ${tc.text}`}>
                           {initials(m.nickname)}
@@ -990,15 +1030,28 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   );
 }
 
-function SaltMeter({ level, label, className }: { level: number; label: string; className: string }) {
+function SaltMeter({
+  level,
+  label,
+  score,
+  className,
+}: {
+  level: number;
+  label: string;
+  score: number;
+  className: string;
+}) {
   return (
-    <div className="flex items-center gap-2" title={`Salt level: ${label}`}>
+    <div className="flex items-center gap-2" title={`Salt level: ${label}`} data-salt-level={label}>
       <div className="flex gap-1">
         {[1, 2, 3, 4].map((segment) => (
           <span key={segment} className={`h-1.5 w-3 border ${segment <= level ? "border-primary bg-primary" : "border-border bg-background"}`} />
         ))}
       </div>
       <span className={`font-mono text-[0.6rem] uppercase tracking-[0.13em] ${className}`}>{label}</span>
+      <span className="border-l border-border/70 pl-2 font-mono text-[0.58rem] tabular-nums text-muted-foreground" title="Behavioral heat score">
+        {Math.min(score, 99)}
+      </span>
     </div>
   );
 }
