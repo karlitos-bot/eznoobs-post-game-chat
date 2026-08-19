@@ -46,7 +46,11 @@
   left: var(--ez-composer-left, 50%) !important;
   width: var(--ez-composer-width, min(86vw, 64rem)) !important;
   max-width: none !important;
+  margin: 0 !important;
   transform: none !important;
+  translate: 0 0 !important;
+  --tw-translate-x: 0px !important;
+  --tw-translate-y: 0px !important;
   padding: 0.6rem 0.75rem !important;
   border-color: color-mix(in oklab, var(--border) 84%, var(--primary) 16%) !important;
   background: color-mix(in oklab, var(--background) 97%, var(--surface) 3%) !important;
@@ -86,6 +90,13 @@
 
 .ez-composer-clean textarea[aria-label="Message"]:focus {
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+.ez-room-header-clean ::selection,
+main ::selection,
+.ez-composer-clean textarea::selection {
+  background: color-mix(in oklab, var(--primary) 28%, transparent);
+  color: inherit;
 }
 
 .message-card {
