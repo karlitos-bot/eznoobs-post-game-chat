@@ -1,0 +1,172 @@
+.ez-clarity-hide,
+.ez-reconnect-redundant,
+.ez-sound-control-clean {
+  display: none !important;
+}
+
+.ez-room-header-clean {
+  box-shadow: 0 12px 34px color-mix(in oklab, black 24%, transparent);
+}
+
+.ez-room-primary-row {
+  min-height: 3.25rem !important;
+  padding-top: 0.45rem !important;
+  padding-bottom: 0.45rem !important;
+}
+
+.ez-room-secondary-row {
+  min-height: 2.7rem !important;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  background: color-mix(in oklab, var(--background) 92%, var(--surface) 8%) !important;
+}
+
+.ez-room-secondary-row button {
+  min-height: 2.4rem !important;
+}
+
+.ez-roster-footer-muted {
+  display: none !important;
+}
+
+.ez-empty-state-clean {
+  margin: clamp(2rem, 7vh, 5rem) auto 0 !important;
+  max-width: 48rem !important;
+  padding: clamp(2rem, 4vw, 3.2rem) !important;
+  border-color: color-mix(in oklab, var(--border) 82%, var(--primary) 18%) !important;
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in oklab, var(--primary) 4%, transparent), transparent 55%),
+    color-mix(in oklab, var(--background) 93%, var(--surface) 7%) !important;
+}
+
+.ez-opening-shots-clean {
+  top: 51vh !important;
+  bottom: auto !important;
+  width: min(86vw, 34rem) !important;
+  transform: translate(-50%, -18%) !important;
+  padding: 0.75rem !important;
+  border-color: color-mix(in oklab, var(--border) 84%, var(--primary) 16%) !important;
+  background: color-mix(in oklab, var(--background) 96%, var(--surface) 4%) !important;
+  box-shadow: 0 14px 44px color-mix(in oklab, black 18%, transparent) !important;
+}
+
+.ez-opening-shots-clean button {
+  min-height: 2rem !important;
+  padding: 0.35rem 0.65rem !important;
+}
+
+.ez-activity-feed-clean {
+  top: 6.65rem !important;
+  bottom: auto !important;
+  z-index: 50 !important;
+}
+
+.ez-activity-feed-clean > div {
+  box-shadow: 0 12px 36px color-mix(in oklab, black 24%, transparent) !important;
+}
+
+.ez-composer-clean {
+  padding-top: 0.65rem !important;
+  background: color-mix(in oklab, var(--background) 97%, var(--surface) 3%) !important;
+  box-shadow: 0 -12px 34px color-mix(in oklab, black 18%, transparent);
+}
+
+.ez-composer-clean textarea[aria-label="Message"] {
+  min-height: 3.25rem !important;
+  max-height: 6.5rem !important;
+  background: color-mix(in oklab, var(--surface) 58%, var(--background) 42%) !important;
+}
+
+.ez-composer-clean textarea[aria-label="Message"]:focus {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+.message-card {
+  border-color: color-mix(in oklab, var(--border) 64%, transparent) !important;
+  border-left-color: transparent !important;
+  margin-bottom: 0.3rem;
+}
+
+.message-card.own-message.msg-in {
+  animation: ez-own-message-in 240ms cubic-bezier(.2,.84,.3,1) both;
+}
+
+.message-card.incoming-message {
+  animation: ez-remote-message-in 320ms cubic-bezier(.2,.84,.3,1) both !important;
+}
+
+.message-card.message-heated {
+  border-color: color-mix(in oklab, var(--primary) 28%, var(--border)) !important;
+  box-shadow: inset 0 0 26px color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+.message-card.message-on-fire {
+  border-color: color-mix(in oklab, var(--primary) 46%, var(--border)) !important;
+  box-shadow:
+    inset 0 0 38px color-mix(in oklab, var(--primary) 7%, transparent),
+    0 0 28px color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+.message-card.message-on-fire::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--primary);
+  animation: ez-hot-edge 820ms ease-in-out infinite;
+}
+
+.reaction-chip {
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease !important;
+}
+
+.reaction-chip:hover {
+  transform: translateY(-2px) scale(1.055);
+}
+
+@keyframes ez-own-message-in {
+  0% { opacity: 0; transform: translateX(12px) translateY(4px) scale(0.992); }
+  70% { opacity: 1; transform: translateX(-1px) translateY(0) scale(1.002); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes ez-remote-message-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px) translateY(4px) scale(0.992);
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+  68% {
+    opacity: 1;
+    transform: translateX(1px) translateY(0) scale(1.002);
+  }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes ez-hot-edge {
+  0%, 100% { opacity: 0.55; transform: scaleY(0.72); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+@media (max-width: 767px) {
+  .ez-opening-shots-clean {
+    display: none !important;
+  }
+
+  .ez-activity-feed-clean {
+    top: 6.25rem !important;
+    width: min(92vw, 24rem) !important;
+  }
+
+  .ez-room-secondary-row {
+    min-height: 2.5rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-card.own-message.msg-in,
+  .message-card.incoming-message,
+  .message-card.message-on-fire::before {
+    animation: none !important;
+  }
+}
