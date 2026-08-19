@@ -31,6 +31,7 @@ import {
   CODE_RE,
   TEAMS,
   getGuestId,
+  getGuestPublicId,
   lastNickname,
   rememberNickname,
   teamClasses,
@@ -269,6 +270,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const react = useServerFn(toggleReaction);
   const voteRematch = useServerFn(toggleRematchVote);
   const leave = useServerFn(leaveLobby);
+  const guestPublicId = getGuestPublicId(guestId);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [players, setPlayers] = useState<Participant[]>([]);
@@ -383,9 +385,9 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const activePlayers = useMemo(
     () =>
       players.filter(
-        (p) => p.guest_id === guestId || now - new Date(p.last_seen_at).getTime() < 150_000,
+        (p) => p.guest_id === guestPublicId || now - new Date(p.last_seen_at).getTime() < 150_000,
       ),
-    [players, guestId, now],
+    [players, guestPublicId, now],
   );
 
   const visible = useMemo(
@@ -434,7 +436,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
   const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
   const expired = new Date(expiresAt).getTime() <= now;
-  const hasRematchVote = rematchVotes.some((v) => v.guest_id === guestId);
+  const hasRematchVote = rematchVotes.some((v) => v.guest_id === guestPublicId);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -560,7 +562,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-surface/40 p-4 lg:block">
           <p className="hud-label mb-4">Online · {activePlayers.length}</p>
-          <PlayerList grouped={grouped} guestId={guestId} muted={muted} setMuted={setMuted} />
+          <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
         </aside>
 
         {showPlayers && (
@@ -574,7 +576,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                 <X className="size-3.5" /> Close
               </button>
               <p className="hud-label mb-4">Online · {activePlayers.length}</p>
-              <PlayerList grouped={grouped} guestId={guestId} muted={muted} setMuted={setMuted} />
+              <PlayerList grouped={grouped} guestId={guestPublicId} muted={muted} setMuted={setMuted} />
             </div>
           </div>
         )}
@@ -612,7 +614,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                       <div className="flex flex-wrap items-baseline gap-x-2">
                         <span className={`font-mono text-xs font-semibold ${tc.text}`}>
                           {m.nickname}
-                          {m.guest_id === guestId && (
+                          {m.guest_id === guestPublicId && (
                             <span className="ml-1 text-muted-foreground">(you)</span>
                           )}
                         </span>
@@ -629,7 +631,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                         {REACTIONS.map((item) => {
                           const count = messageReactions.filter((r) => r.emoji === item.value).length;
                           const active = messageReactions.some(
-                            (r) => r.emoji === item.value && r.guest_id === guestId,
+                            (r) => r.emoji === item.value && r.guest_id === guestPublicId,
                           );
                           return (
                             <button
@@ -653,7 +655,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                           );
                         })}
 
-                        {m.guest_id !== guestId && (
+                        {m.guest_id !== guestPublicId && (
                           <button
                             type="button"
                             aria-label={`Report message from ${m.nickname}`}
