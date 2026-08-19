@@ -203,7 +203,7 @@ export function LobbyShowtimeLayer() {
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ["aria-label"],
+      attributeFilter: ["aria-label", "class"],
     });
     window.addEventListener("resize", decorate);
     const fallback = window.setInterval(decorate, 1200);
