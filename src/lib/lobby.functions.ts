@@ -10,7 +10,25 @@ const nickSchema = z
   .min(2)
   .max(20)
   .regex(/^[^\u0000-\u001F]+$/);
-const guestSchema = z.string().min(8).max(64);
+const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+const guestSchema = z.string().regex(new RegExp(`^${uuid}\\.${uuid}$`, "i"));
+
+function splitGuestCredential(credential: string) {
+  const [publicId, secret] = credential.split(".");
+  if (!publicId || !secret) throw new Error("Invalid guest credential.");
+  return { publicId, secret };
+}
+
+async function callRpc(
+  supabaseAdmin: unknown,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  return (supabaseAdmin as { rpc: (n: string, a: Record<string, unknown>) => Promise<any> }).rpc(
+    name,
+    args,
+  );
+}
 
 const createSchema = z.object({
   game: z.string().min(2).max(40),
@@ -30,9 +48,11 @@ export const createLobby = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("create_lobby", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "create_lobby", {
       p_game: data.game,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
       p_nickname: data.nickname,
       p_team: data.team,
     });
@@ -46,9 +66,11 @@ export const joinLobby = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => joinSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("join_lobby", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "join_lobby", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
       p_nickname: data.nickname,
       p_team: data.team,
     });
@@ -80,17 +102,17 @@ export const sendMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("send_message", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "send_message", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
       p_body: data.body,
     });
     if (error) throw new Error(error.message);
     const rows = result as { out_ok: boolean; out_reason: string | null }[] | null;
     const r = rows?.[0];
-    if (!r || !r.out_ok) {
-      throw new Error(r?.out_reason ?? "Message failed.");
-    }
+    if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Message failed.");
     return { ok: true };
   });
 
@@ -110,15 +132,16 @@ export const getLobby = createServerFn({ method: "GET" })
 
     let joined = false;
     if (data.guestId) {
-      const activeSince = new Date(Date.now() - 3 * 60_000).toISOString();
-      const { data: p } = await supabaseAdmin
-        .from("participants")
-        .select("id")
-        .eq("lobby_id", lobby.id)
-        .eq("guest_id", data.guestId)
-        .gt("last_seen_at", activeSince)
-        .maybeSingle();
-      joined = Boolean(p);
+      const guest = splitGuestCredential(data.guestId);
+      const { data: result, error } = await callRpc(supabaseAdmin, "check_participant", {
+        p_code: data.code,
+        p_guest_id: guest.publicId,
+        p_guest_secret: guest.secret,
+      });
+      if (!error) {
+        const rows = result as { out_joined: boolean }[] | null;
+        joined = Boolean(rows?.[0]?.out_joined);
+      }
     }
     return { ...lobby, joined };
   });
@@ -136,9 +159,11 @@ export const reportMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("report_message", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "report_message", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
       p_message_id: data.messageId,
       p_reason: data.reason,
     });
@@ -153,9 +178,11 @@ export const touchPresence = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("touch_presence", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "touch_presence", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
     });
     if (error) throw new Error(error.message);
     const rows = result as { out_ok: boolean }[] | null;
@@ -176,9 +203,11 @@ export const toggleReaction = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("toggle_reaction", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "toggle_reaction", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
       p_message_id: data.messageId,
       p_emoji: data.emoji,
     });
@@ -195,9 +224,11 @@ export const toggleRematchVote = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("toggle_rematch_vote", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "toggle_rematch_vote", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
     });
     if (error) throw new Error(error.message);
     const rows = result as
@@ -212,9 +243,11 @@ export const leaveLobby = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc("leave_lobby", {
+    const guest = splitGuestCredential(data.guestId);
+    const { data: result, error } = await callRpc(supabaseAdmin, "leave_lobby", {
       p_code: data.code,
-      p_guest_id: data.guestId,
+      p_guest_id: guest.publicId,
+      p_guest_secret: guest.secret,
     });
     if (error) throw new Error(error.message);
     const rows = result as { out_ok: boolean }[] | null;
