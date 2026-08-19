@@ -8,6 +8,7 @@ export const GAMES = [
   "Other",
 ] as const;
 
+export type Game = (typeof GAMES)[number];
 export type Team = "blue" | "red" | "spectator";
 
 export const TEAMS: { value: Team; label: string }[] = [
@@ -32,11 +33,22 @@ export function teamClasses(team: Team) {
 }
 
 const GUEST_KEY = "eznoobs_guest_id";
+const NICK_KEY = "eznoobs_nick";
+const GAME_KEY = "eznoobs_game";
+const TEAM_KEY = "eznoobs_team";
 const GUEST_CREDENTIAL_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function newGuestCredential() {
   return `${crypto.randomUUID()}.${crypto.randomUUID()}`;
+}
+
+function isGame(value: string): value is Game {
+  return (GAMES as readonly string[]).includes(value);
+}
+
+function isTeam(value: string): value is Team {
+  return value === "blue" || value === "red" || value === "spectator";
 }
 
 /**
@@ -63,9 +75,44 @@ export function getGuestPublicId(credential: string): string {
 }
 
 export function rememberNickname(nick: string) {
-  if (typeof window !== "undefined") localStorage.setItem("eznoobs_nick", nick);
+  if (typeof window !== "undefined") localStorage.setItem(NICK_KEY, nick);
 }
+
 export function lastNickname(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("eznoobs_nick") ?? "";
+  return localStorage.getItem(NICK_KEY) ?? "";
+}
+
+export function rememberGame(game: string) {
+  if (typeof window !== "undefined" && isGame(game)) localStorage.setItem(GAME_KEY, game);
+}
+
+export function lastGame(): Game {
+  if (typeof window === "undefined") return GAMES[0];
+  const game = localStorage.getItem(GAME_KEY);
+  return game && isGame(game) ? game : GAMES[0];
+}
+
+export function rememberTeam(team: Team) {
+  if (typeof window !== "undefined") localStorage.setItem(TEAM_KEY, team);
+}
+
+export function lastTeam(): Team {
+  if (typeof window === "undefined") return "blue";
+  const team = localStorage.getItem(TEAM_KEY);
+  return team && isTeam(team) ? team : "blue";
+}
+
+export function rememberLobbyPreferences({
+  nickname,
+  game,
+  team,
+}: {
+  nickname?: string;
+  game?: string;
+  team?: Team;
+}) {
+  if (nickname) rememberNickname(nickname);
+  if (game) rememberGame(game);
+  if (team) rememberTeam(team);
 }
