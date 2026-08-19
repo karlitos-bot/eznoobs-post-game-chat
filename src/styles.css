@@ -235,8 +235,9 @@
 .tactical-button:hover::after { transform: translateX(105%); }
 
 @keyframes msg-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: none; }
+  0% { opacity: 0; transform: translateY(10px) scale(0.992); }
+  62% { opacity: 1; transform: translateY(-1px) scale(1.002); }
+  100% { opacity: 1; transform: none; }
 }
 
 @keyframes rise-in {
@@ -251,8 +252,8 @@
 
 @keyframes reaction-tap {
   0% { transform: translateY(0) scale(1); }
-  42% { transform: translateY(-2px) scale(1.16) rotate(-3deg); }
-  72% { transform: translateY(0) scale(0.97) rotate(1deg); }
+  42% { transform: translateY(-3px) scale(1.2) rotate(-4deg); }
+  72% { transform: translateY(0) scale(0.96) rotate(1deg); }
   100% { transform: translateY(0) scale(1) rotate(0); }
 }
 
@@ -268,15 +269,57 @@
 }
 
 @keyframes reaction-burst {
-  0% { opacity: 0; transform: translateY(8px) scale(0.75) rotate(-5deg); }
-  28% { opacity: 1; transform: translateY(-2px) scale(1.14) rotate(2deg); }
-  70% { opacity: 0.95; transform: translateY(-9px) scale(1); }
-  100% { opacity: 0; transform: translateY(-16px) scale(0.92); }
+  0% { opacity: 0; transform: translateY(14px) scale(0.55) rotate(-8deg); filter: blur(1px); }
+  22% { opacity: 1; transform: translateY(0) scale(1.35) rotate(3deg); filter: blur(0); }
+  58% { opacity: 1; transform: translateY(-13px) scale(1.05) rotate(-2deg); }
+  100% { opacity: 0; transform: translateY(-31px) scale(0.78) rotate(4deg); }
 }
 
 @keyframes runback-ready {
   0%, 100% { box-shadow: inset 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
-  50% { box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 7%, transparent); }
+  50% { box-shadow: inset 0 0 30px color-mix(in oklab, var(--primary) 9%, transparent); }
+}
+
+@keyframes incoming-hit {
+  0% {
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 44%, transparent), -10px 0 32px color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent;
+  }
+}
+
+@keyframes reaction-impact {
+  0% { transform: scale(1); }
+  32% { transform: scale(1.008); background: color-mix(in oklab, var(--primary) 7%, var(--surface)); }
+  100% { transform: scale(1); }
+}
+
+@keyframes message-heat {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 5%, transparent); }
+}
+
+@keyframes typing-dot {
+  0%, 70%, 100% { opacity: 0.28; transform: translateY(0) scale(0.8); }
+  34% { opacity: 1; transform: translateY(-2px) scale(1.12); }
+}
+
+@keyframes send-charge {
+  0%, 100% { box-shadow: 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
+  50% { box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 14%, transparent); }
+}
+
+@keyframes nuclear-ambient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes online-blink {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 45%, transparent); }
 }
 
 button[aria-label*=" reaction"] {
@@ -285,20 +328,164 @@ button[aria-label*=" reaction"] {
 }
 
 button[aria-label*=" reaction"]:hover {
-  transform: translateY(-1px) scale(1.035);
+  transform: translateY(-2px) scale(1.06);
 }
 
 button[aria-label*=" reaction"]:active {
-  animation: reaction-tap 260ms cubic-bezier(.2,.85,.35,1);
+  animation: reaction-tap 280ms cubic-bezier(.2,.85,.35,1);
 }
 
 .reaction-burst {
-  animation: reaction-burst 650ms cubic-bezier(.2,.8,.3,1) both;
-  text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 32%, transparent);
+  animation: reaction-burst 860ms cubic-bezier(.18,.84,.28,1) both;
+  text-shadow:
+    0 0 10px color-mix(in oklab, var(--primary) 48%, transparent),
+    0 0 24px color-mix(in oklab, var(--primary) 28%, transparent);
+  will-change: transform, opacity;
 }
 
 .runback-ready {
-  animation: runback-ready 1.2s ease-in-out infinite;
+  animation: runback-ready 1.15s ease-in-out infinite;
+}
+
+.message-card {
+  background: color-mix(in oklab, var(--background) 55%, transparent);
+  transform-origin: center;
+}
+
+.message-card:hover {
+  border-color: color-mix(in oklab, var(--border) 76%, var(--primary) 24%);
+  background: color-mix(in oklab, var(--surface) 52%, transparent);
+  transform: translateX(2px);
+}
+
+.message-card.own-message {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 2.5%, transparent), transparent 55%);
+}
+
+.message-card.incoming-message {
+  animation: incoming-hit 820ms ease-out both;
+}
+
+.message-card.reaction-impact {
+  animation: reaction-impact 500ms cubic-bezier(.2,.85,.35,1);
+}
+
+.message-card.message-heated {
+  border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
+  animation: message-heat 1.9s ease-in-out infinite;
+}
+
+.message-card.message-on-fire {
+  border-color: color-mix(in oklab, var(--primary) 42%, var(--border));
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--primary) 4%, transparent), transparent 45%),
+    color-mix(in oklab, var(--background) 55%, transparent);
+  animation: message-heat 1.05s ease-in-out infinite;
+}
+
+.message-card:hover .message-avatar {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 6%, transparent);
+}
+
+.message-avatar {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.message-body {
+  transition: color 140ms ease;
+}
+
+.message-card:hover .message-body {
+  color: var(--foreground);
+}
+
+.message-heat-badge {
+  border-left: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  padding-left: 0.5rem;
+}
+
+.reaction-rail {
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.message-card:hover .reaction-rail {
+  transform: translateY(-1px);
+}
+
+.reaction-chip {
+  opacity: 0.72;
+  transform-origin: center;
+  backdrop-filter: blur(4px);
+}
+
+.reaction-chip:hover,
+.reaction-chip:focus-visible,
+.reaction-chip[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.reaction-chip-active .reaction-label {
+  display: inline-block;
+  animation: signal-pulse 1.1s ease-in-out infinite;
+}
+
+.live-activity-strip {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--foreground) 2%, transparent);
+}
+
+.typing-dots > span {
+  width: 4px;
+  height: 4px;
+  background: var(--primary);
+  animation: typing-dot 900ms ease-in-out infinite;
+}
+
+.typing-dots > span:nth-child(2) { animation-delay: 110ms; }
+.typing-dots > span:nth-child(3) { animation-delay: 220ms; }
+
+.composer-shell {
+  transition: box-shadow 180ms ease, background 180ms ease;
+}
+
+.composer-shell.composer-live {
+  box-shadow: 0 -12px 46px color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+.composer-armed {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--primary) 12%, transparent),
+    0 0 22px color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+.send-ready {
+  animation: send-charge 1.4s ease-in-out infinite;
+}
+
+.player-row {
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.player-row:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in oklab, var(--border) 72%, var(--primary) 28%);
+  background: color-mix(in oklab, var(--surface) 42%, transparent);
+}
+
+.online-dot {
+  animation: online-blink 2.2s ease-in-out infinite;
+}
+
+.chat-energy-spicy {
+  background-image: radial-gradient(80% 55% at 50% 100%, color-mix(in oklab, var(--primary) 2.8%, transparent), transparent 72%);
+}
+
+.chat-energy-nuclear {
+  background-image:
+    radial-gradient(70% 45% at 50% 100%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%),
+    radial-gradient(35% 25% at 80% 15%, color-mix(in oklab, var(--primary) 2.5%, transparent), transparent 74%);
+  background-size: 130% 130%, 100% 100%;
+  animation: nuclear-ambient 4.2s ease-in-out infinite;
 }
 
 div[title="Salt level: SPICY"] > div > span,
@@ -319,7 +506,7 @@ div[data-salt-level="NUCLEAR"] > div > span {
 }
 
 @utility msg-in {
-  animation: msg-in 160ms ease-out both;
+  animation: msg-in 220ms cubic-bezier(.2,.8,.3,1) both;
 }
 
 @utility rise-in {
