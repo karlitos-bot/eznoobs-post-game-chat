@@ -238,10 +238,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_lobby: {
+        Args: {
+          p_game: string
+          p_guest_id: string
+          p_nickname: string
+          p_team: string
+        }
+        Returns: {
+          out_code: string
+        }[]
+      }
+      generate_room_code: { Args: never; Returns: string }
+      join_lobby: {
+        Args: {
+          p_code: string
+          p_guest_id: string
+          p_nickname: string
+          p_team: string
+        }
+        Returns: {
+          out_code: string
+          out_game: string
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
       leave_lobby: {
         Args: { p_code: string; p_guest_id: string }
         Returns: {
           out_ok: boolean
+        }[]
+      }
+      report_message: {
+        Args: {
+          p_code: string
+          p_guest_id: string
+          p_message_id: string
+          p_reason: string
+        }
+        Returns: {
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
+      send_message: {
+        Args: { p_body: string; p_code: string; p_guest_id: string }
+        Returns: {
+          out_ok: boolean
+          out_reason: string
         }[]
       }
       toggle_reaction: {
@@ -264,6 +309,12 @@ export type Database = {
           out_count: number
           out_ok: boolean
           out_reason: string
+        }[]
+      }
+      touch_presence: {
+        Args: { p_code: string; p_guest_id: string }
+        Returns: {
+          out_ok: boolean
         }[]
       }
     }
