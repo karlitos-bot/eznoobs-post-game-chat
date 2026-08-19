@@ -117,6 +117,77 @@ export type Database = {
           },
         ]
       }
+      reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          guest_id: string
+          id: string
+          lobby_id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          guest_id: string
+          id?: string
+          lobby_id: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          guest_id?: string
+          id?: string
+          lobby_id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rematch_votes: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          lobby_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          lobby_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          lobby_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rematch_votes_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string
@@ -167,7 +238,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      leave_lobby: {
+        Args: { p_code: string; p_guest_id: string }
+        Returns: {
+          out_ok: boolean
+        }[]
+      }
+      toggle_reaction: {
+        Args: {
+          p_code: string
+          p_emoji: string
+          p_guest_id: string
+          p_message_id: string
+        }
+        Returns: {
+          out_active: boolean
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
+      toggle_rematch_vote: {
+        Args: { p_code: string; p_guest_id: string }
+        Returns: {
+          out_active: boolean
+          out_count: number
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
