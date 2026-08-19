@@ -8,10 +8,12 @@ import {
   Radio,
   ShieldCheck,
   Swords,
+  Timer,
   Users,
   Zap,
 } from "lucide-react";
 
+import { GameMark, getGameVisual } from "@/components/eznoobs/GameMark";
 import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
 import { createLobby } from "@/lib/lobby.functions";
@@ -35,13 +37,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Create a temporary post-game chat lobby, share a 5-character code, and keep the trash talk going after the match ends. No account needed.",
+          "Create a five-minute post-game chat lobby, share a 5-character code, and keep the trash talk going after the match ends. No account needed.",
       },
       { property: "og:title", content: "EZNOOBS — The match ended. The lobby didn't." },
       {
         property: "og:description",
         content:
-          "Temporary post-game lobbies for GGs, trash talk, rematches and unfinished business.",
+          "Five-minute post-game lobbies for GGs, trash talk, rematches and unfinished business.",
       },
       { property: "og:image", content: "/eznoobs-logo.webp" },
       { name: "twitter:image", content: "/eznoobs-logo.webp" },
@@ -145,7 +147,7 @@ function Home() {
                     </span>
                     <span className="hidden h-3 w-px bg-border sm:block" />
                     <span className="hud-label hidden sm:inline">
-                      No signup · No friend request · No waiting
+                      No signup · Five minutes · No waiting
                     </span>
                   </div>
                   <p className="display mt-2 text-xl tracking-[0.03em] text-foreground sm:text-2xl">
@@ -165,8 +167,8 @@ function Home() {
               </h1>
 
               <p className="mt-7 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Open a temporary post-game room, drop the code in match chat, and keep the GGs,
-                rematch talk and unfinished business moving.
+                Open a five-minute post-game room, drop the code in match chat, and keep the GGs,
+                trash talk and rematch energy moving.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -177,27 +179,28 @@ function Home() {
                   Create lobby <ArrowRight className="size-4" />
                 </button>
                 <div className="flex min-h-11 items-center border border-border bg-surface/55 px-4 py-3">
-                  <Users className="mr-2 size-4 text-primary" />
+                  <Timer className="mr-2 size-4 text-primary" />
                   <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
-                    Built for both teams
+                    Five-minute showdown
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 grid max-w-2xl grid-cols-3 border-y border-border/70 lg:mt-16">
+            <div className="mt-12 grid max-w-2xl grid-cols-4 border-y border-border/70 lg:mt-16">
               {[
-                ["01", "Create", "Instant room"],
-                ["02", "Drop", "Share the code"],
-                ["03", "Run it back", "Keep talking"],
+                ["01", "Finish", "Match ends"],
+                ["02", "Create", "Open room"],
+                ["03", "Drop", "Share code"],
+                ["04", "Talk", "Settle it"],
               ].map(([number, title, detail], index) => (
                 <div
                   key={number}
-                  className={`py-4 pr-3 ${index > 0 ? "border-l border-border/70 pl-4" : ""}`}
+                  className={`py-4 pr-2 ${index > 0 ? "border-l border-border/70 pl-3 sm:pl-4" : ""}`}
                 >
-                  <span className="font-mono text-[0.62rem] text-primary">{number}</span>
-                  <p className="display mt-1 text-base text-foreground">{title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+                  <span className="font-mono text-[0.6rem] text-primary">{number}</span>
+                  <p className="display mt-1 text-sm text-foreground sm:text-base">{title}</p>
+                  <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{detail}</p>
                 </div>
               ))}
             </div>
@@ -214,28 +217,44 @@ function Home() {
                 <Zap className="mt-1 size-5 text-primary" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Pick the game, your name and your side. Your last setup is remembered on this device.
+                Pick the game, your name and your side. The room closes five minutes after creation.
               </p>
             </div>
 
             <form onSubmit={onCreate} className="relative space-y-5 px-5 py-5 sm:px-6 sm:py-6">
-              <div>
+              <fieldset disabled={busy}>
                 <div className="mb-2 flex items-center justify-between">
-                  <label className="hud-label" htmlFor="game">Game</label>
-                  <span className="font-mono text-[0.58rem] uppercase tracking-[0.13em] text-muted-foreground">Match source</span>
+                  <legend className="hud-label">Game</legend>
+                  <span className="font-mono text-[0.58rem] uppercase tracking-[0.13em] text-muted-foreground">Pick your battlefield</span>
                 </div>
-                <select
-                  id="game"
-                  value={game}
-                  disabled={busy}
-                  onChange={(e) => setGame(e.target.value)}
-                  className="min-h-11 w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors focus:border-primary disabled:cursor-wait disabled:opacity-60"
-                >
-                  {GAMES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {GAMES.map((g) => {
+                    const visual = getGameVisual(g);
+                    const selected = game === g;
+                    const Icon = visual.icon;
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGame(g)}
+                        aria-pressed={selected}
+                        className={`group relative min-h-[4.65rem] border px-2.5 py-2.5 text-left transition-all disabled:cursor-wait disabled:opacity-60 ${
+                          selected
+                            ? `${visual.border} ${visual.bg} ${visual.text} shadow-[inset_0_0_0_1px_currentColor]`
+                            : "border-border bg-background/55 text-muted-foreground hover:border-foreground/30 hover:bg-surface/55 hover:text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <Icon className={`size-4 ${selected ? visual.text : "text-muted-foreground group-hover:text-foreground"}`} />
+                          {selected && <span className="size-1.5 bg-current signal-pulse" />}
+                        </div>
+                        <p className="mt-2 font-mono text-[0.64rem] font-semibold uppercase tracking-[0.1em]">{visual.short}</p>
+                        <p className="mt-0.5 truncate text-[0.67rem] text-current/70">{g}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
@@ -342,12 +361,38 @@ function Home() {
           </section>
         </div>
 
-        <section className="mt-10 grid gap-px border border-border/70 bg-border/70 md:grid-cols-3 lg:mt-14">
+        <section className="mt-10 border border-border/70 bg-background/72 lg:mt-14">
+          <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+            <div>
+              <p className="hud-label text-primary">What is EZNOOBS?</p>
+              <h2 className="mt-1 text-3xl">The five minutes after GG</h2>
+            </div>
+            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+              No server. No account. No permanent history. Make a room after the match, drop the code, talk your talk, vote for the runback, then the lobby disappears.
+            </p>
+          </div>
+          <div className="grid gap-px bg-border/70 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["01", "Finish match", "The scoreboard closes."],
+              ["02", "Create lobby", "EZNOOBS starts the five-minute clock."],
+              ["03", "Drop the code", "Both teams can jump straight in."],
+              ["04", "Keep talking", "GGs, salt, reactions and runback votes."],
+            ].map(([number, title, text]) => (
+              <article key={number} className="bg-background/92 p-5 sm:p-6">
+                <span className="font-mono text-[0.62rem] text-primary">{number}</span>
+                <h3 className="mt-2 text-xl">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-4 grid gap-px border border-border/70 bg-border/70 md:grid-cols-3">
           {[
             {
               icon: Swords,
               title: "Post-match by design",
-              text: "Not another server to manage. One match, one temporary room, zero setup.",
+              text: "Not another community to manage. One match, one temporary room, zero setup.",
             },
             {
               icon: Radio,
@@ -357,7 +402,7 @@ function Home() {
             {
               icon: ShieldCheck,
               title: "Temporary on purpose",
-              text: "Rooms expire after inactivity. Say what you need, queue the runback, move on.",
+              text: "Five minutes from creation. No activity resets the clock and the room clears when time is up.",
             },
           ].map(({ icon: Icon, title, text }) => (
             <article key={title} className="bg-background/85 p-5 sm:p-6">
@@ -367,6 +412,11 @@ function Home() {
             </article>
           ))}
         </section>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 border border-border/70 bg-background/72 p-4 sm:px-5">
+          <span className="hud-label mr-1">Current games</span>
+          {GAMES.map((g) => <GameMark key={g} game={g} compact />)}
+        </div>
       </main>
 
       <footer className="relative z-10 border-t border-border/70 bg-background/70">
@@ -374,7 +424,7 @@ function Home() {
           <p className="hud-label">Trash talk responsibly.</p>
           <div className="flex items-center gap-4">
             <span className="hud-label">No account</span>
-            <span className="hud-label">Temporary</span>
+            <span className="hud-label">5 minutes</span>
             <span className="hud-label text-primary">Gamer-first</span>
           </div>
         </div>
