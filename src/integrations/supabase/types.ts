@@ -167,67 +167,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_lobby: {
-        Args: {
-          p_game: string
-          p_guest_id: string
-          p_nickname: string
-          p_team: string
-        }
-        Returns: {
-          out_code: string
-        }[]
-      }
-      join_lobby: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-          p_nickname: string
-          p_team: string
-        }
-        Returns: {
-          out_ok: boolean
-          out_reason: string | null
-          out_code: string | null
-          out_game: string | null
-        }[]
-      }
-      send_message: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-          p_body: string
-        }
-        Returns: {
-          out_ok: boolean
-          out_reason: string | null
-        }[]
-      }
-      report_message: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-          p_message_id: string
-          p_reason: string
-        }
-        Returns: {
-          out_ok: boolean
-          out_reason: string | null
-        }[]
-      }
-      touch_presence: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-        }
-        Returns: {
-          out_ok: boolean
-        }[]
-      }
-      generate_room_code: {
-        Args: Record<string, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
