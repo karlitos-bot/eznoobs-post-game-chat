@@ -43,8 +43,8 @@ export const Route = createFileRoute("/")({
         content:
           "Temporary post-game lobbies for GGs, trash talk, rematches and unfinished business.",
       },
-      { property: "og:image", content: "/eznoobs-logo.svg" },
-      { name: "twitter:image", content: "/eznoobs-logo.svg" },
+      { property: "og:image", content: "/eznoobs-logo.webp" },
+      { name: "twitter:image", content: "/eznoobs-logo.webp" },
     ],
   }),
   component: Home,
@@ -132,7 +132,7 @@ function Home() {
               <div className="mb-7 flex items-center gap-4 sm:gap-5">
                 <div className="relative size-24 shrink-0 overflow-hidden border border-primary/25 bg-black/80 shadow-[0_0_35px_rgba(180,255,0,0.06)] sm:size-28">
                   <img
-                    src="/eznoobs-logo.svg"
+                    src="/eznoobs-logo.webp"
                     alt="EZNOOBS gaming mascot logo"
                     className="h-full w-full select-none object-cover"
                     draggable={false}
