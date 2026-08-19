@@ -75,11 +75,24 @@
   body {
     min-height: 100vh;
     margin: 0;
+    overflow-x: hidden;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--primary) 72%, white 8%);
+    outline-offset: 2px;
   }
   h1, h2, h3, .display {
     font-family: var(--font-display);
@@ -94,6 +107,26 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
+  }
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -174,6 +207,19 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
+}
+
+@utility touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@utility mobile-safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+@utility mobile-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
 }
 
 .tactical-button::after {
