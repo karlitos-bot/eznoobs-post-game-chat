@@ -24,21 +24,42 @@ export function normalizeCode(input: string) {
 }
 
 export function teamClasses(team: Team) {
-  if (team === "blue") return { text: "text-blue-team", border: "border-blue-team/40", bg: "bg-blue-team/10" };
-  if (team === "red") return { text: "text-red-team", border: "border-red-team/40", bg: "bg-red-team/10" };
+  if (team === "blue")
+    return { text: "text-blue-team", border: "border-blue-team/40", bg: "bg-blue-team/10" };
+  if (team === "red")
+    return { text: "text-red-team", border: "border-red-team/40", bg: "bg-red-team/10" };
   return { text: "text-spectator", border: "border-spectator/30", bg: "bg-spectator/10" };
 }
 
 const GUEST_KEY = "eznoobs_guest_id";
+const GUEST_CREDENTIAL_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function newGuestCredential() {
+  return `${crypto.randomUUID()}.${crypto.randomUUID()}`;
+}
+
+/**
+ * Returns a browser-local guest credential in the form publicId.secret.
+ * The public ID is stored in chat rows; the secret is only kept in localStorage
+ * and is verified server-side before any write action.
+ */
 export function getGuestId(): string {
   if (typeof window === "undefined") return "";
-  let id = localStorage.getItem(GUEST_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(GUEST_KEY, id);
+  let credential = localStorage.getItem(GUEST_KEY);
+
+  // Migrate the old public-only UUID format to a fresh credential.
+  if (!credential || !GUEST_CREDENTIAL_RE.test(credential)) {
+    credential = newGuestCredential();
+    localStorage.setItem(GUEST_KEY, credential);
   }
-  return id;
+
+  return credential;
+}
+
+export function getGuestPublicId(credential: string): string {
+  const dot = credential.indexOf(".");
+  return dot > 0 ? credential.slice(0, dot) : credential;
 }
 
 export function rememberNickname(nick: string) {
