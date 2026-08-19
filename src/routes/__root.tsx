@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
+import { RoomExpiryGuard } from "@/components/eznoobs/RoomExpiryGuard";
 import { Toaster } from "@/components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -144,6 +145,7 @@ function RootComponent() {
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
       <LobbyShowtimeLayer />
+      <RoomExpiryGuard />
       <Toaster />
     </QueryClientProvider>
   );
