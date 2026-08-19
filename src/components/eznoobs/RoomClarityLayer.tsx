@@ -35,7 +35,7 @@ export function RoomClarityLayer() {
           );
           const primaryRow = directRows.find((row) => {
             const text = cleanText(row);
-            return text.includes("POST-MATCH LOBBY") && text.includes("SYNCING") || text.includes("LIVE");
+            return (text.includes("POST-MATCH LOBBY") && text.includes("SYNCING")) || text.includes("LIVE");
           });
           primaryRow?.classList.add("ez-room-primary-row");
 
@@ -121,7 +121,17 @@ export function RoomClarityLayer() {
         }
 
         const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
-        composer?.closest("form")?.classList.add("ez-composer-clean");
+        const composerForm = composer?.closest<HTMLElement>("form") ?? null;
+        composerForm?.classList.add("ez-composer-clean");
+
+        if (composerForm) {
+          const composerInner = composerForm.querySelector<HTMLElement>(".max-w-5xl") ?? composerForm;
+          const innerRect = composerInner.getBoundingClientRect();
+          const formRect = composerForm.getBoundingClientRect();
+          document.documentElement.style.setProperty("--ez-composer-left", `${innerRect.left}px`);
+          document.documentElement.style.setProperty("--ez-composer-width", `${innerRect.width}px`);
+          document.documentElement.style.setProperty("--ez-composer-top", `${formRect.top}px`);
+        }
       });
     };
 
@@ -129,11 +139,16 @@ export function RoomClarityLayer() {
     const observer = new MutationObserver(apply);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     const fallback = window.setInterval(apply, 1500);
+    window.addEventListener("resize", apply);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
       clearInterval(fallback);
       observer.disconnect();
+      window.removeEventListener("resize", apply);
+      document.documentElement.style.removeProperty("--ez-composer-left");
+      document.documentElement.style.removeProperty("--ez-composer-width");
+      document.documentElement.style.removeProperty("--ez-composer-top");
     };
   }, [isRoom]);
 
