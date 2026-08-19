@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -91,7 +92,14 @@ type Reaction = {
 };
 type RematchVote = { id: string; guest_id: string };
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline";
-type ReactionBurst = { id: number; messageId: string; label: string };
+type ReactionBurst = { id: number; messageId: string; label: string; lane: number };
+type TypingUser = { guestId: string; nickname: string; team: Team; expiresAt: number };
+type TypingPayload = {
+  guestId?: string;
+  nickname?: string;
+  team?: Team;
+  active?: boolean;
+};
 
 type LobbySnapshot = {
   lobby: {
@@ -115,6 +123,10 @@ const REACTIONS: { value: ReactionName; label: string; title: string }[] = [
   { value: "salt", label: "🧂", title: "Salty" },
   { value: "clown", label: "🤡", title: "Clown" },
 ];
+
+function reactionLabel(emoji: ReactionName) {
+  return REACTIONS.find((reaction) => reaction.value === emoji)?.label ?? emoji;
+}
 
 function RoomPage() {
   const { code: rawCode } = useParams({ from: "/room/$code" });
@@ -375,12 +387,24 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [now, setNow] = useState(() => Date.now());
   const [leaving, setLeaving] = useState(false);
-  const [reactionBurst, setReactionBurst] = useState<ReactionBurst | null>(null);
+  const [reactionBursts, setReactionBursts] = useState<ReactionBurst[]>([]);
+  const [typingUsers, setTypingUsers] = useState<Record<string, TypingUser>>({});
+  const [incomingMessageId, setIncomingMessageId] = useState<string | null>(null);
+  const [impactMessageId, setImpactMessageId] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
     typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "connecting",
   );
+
   const endRef = useRef<HTMLDivElement>(null);
+  const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const clearedAfterExpiry = useRef(false);
+  const knownMessageIdsRef = useRef<Set<string> | null>(null);
+  const knownReactionIdsRef = useRef<Set<string> | null>(null);
+  const burstCounterRef = useRef(0);
+  const incomingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const impactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
 
   useEffect(() => {
     if (!guestId) return;
@@ -392,6 +416,55 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     let channelSubscribed = false;
 
     function applySnapshot(snapshot: LobbySnapshot) {
+      const nextMessageIds = new Set(snapshot.messages.map((message) => message.id));
+      if (knownMessageIdsRef.current) {
+        const newMessages = snapshot.messages.filter(
+          (message) => !knownMessageIdsRef.current?.has(message.id),
+        );
+        const newestRemote = [...newMessages]
+          .reverse()
+          .find((message) => message.guest_id !== guestPublicId);
+        if (newestRemote) {
+          setIncomingMessageId(newestRemote.id);
+          if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+          incomingTimerRef.current = setTimeout(() => setIncomingMessageId(null), 850);
+        }
+      }
+      knownMessageIdsRef.current = nextMessageIds;
+
+      const nextReactionIds = new Set(snapshot.reactions.map((reaction) => reaction.id));
+      if (knownReactionIdsRef.current) {
+        const newRemoteReactions = snapshot.reactions
+          .filter((reaction) => !knownReactionIdsRef.current?.has(reaction.id))
+          .filter((reaction) => reaction.guest_id !== guestPublicId)
+          .slice(-4);
+
+        if (newRemoteReactions.length > 0) {
+          const bursts = newRemoteReactions.map((reaction) => {
+            burstCounterRef.current += 1;
+            return {
+              id: Date.now() + burstCounterRef.current,
+              messageId: reaction.message_id,
+              label: reactionLabel(reaction.emoji),
+              lane: burstCounterRef.current % 3,
+            };
+          });
+          setReactionBursts((current) => [...current.slice(-5), ...bursts]);
+          const newest = bursts[bursts.length - 1];
+          if (newest) {
+            setImpactMessageId(newest.messageId);
+            if (impactTimerRef.current) clearTimeout(impactTimerRef.current);
+            impactTimerRef.current = setTimeout(() => setImpactMessageId(null), 520);
+          }
+          for (const burst of bursts) {
+            setTimeout(() => {
+              setReactionBursts((current) => current.filter((item) => item.id !== burst.id));
+            }, 900);
+          }
+        }
+      }
+      knownReactionIdsRef.current = nextReactionIds;
+
       setMessages(snapshot.messages);
       setPlayers(snapshot.players);
       setReactions(snapshot.reactions);
@@ -438,6 +511,31 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       refreshTimer = setTimeout(() => void refreshState(), 120);
     }
 
+    function handleTyping(event: unknown) {
+      const payload = (event as { payload?: TypingPayload })?.payload;
+      if (!payload?.guestId || payload.guestId === guestPublicId) return;
+
+      if (!payload.active) {
+        setTypingUsers((current) => {
+          const next = { ...current };
+          delete next[payload.guestId!];
+          return next;
+        });
+        return;
+      }
+
+      if (!payload.nickname || !payload.team) return;
+      setTypingUsers((current) => ({
+        ...current,
+        [payload.guestId!]: {
+          guestId: payload.guestId!,
+          nickname: payload.nickname!,
+          team: payload.team!,
+          expiresAt: Date.now() + 2200,
+        },
+      }));
+    }
+
     function handleOffline() {
       setConnectionState("offline");
     }
@@ -454,32 +552,49 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     const channel = supabase
       .channel(`room:${lobby.code}`)
       .on("broadcast", { event: "db-change" }, scheduleRefresh)
+      .on("broadcast", { event: "typing" }, handleTyping)
       .subscribe((status, err) => {
         if (!alive) return;
         if (status === "SUBSCRIBED") {
           channelSubscribed = true;
+          roomChannelRef.current = channel;
           setConnectionState("connected");
           void refreshState();
           return;
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           channelSubscribed = false;
+          if (roomChannelRef.current === channel) roomChannelRef.current = null;
           setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
           if (err) console.warn("Realtime channel status", status, err);
         }
       });
 
+    roomChannelRef.current = channel;
     const fallbackRefresh = setInterval(() => void refreshState(), 10_000);
+    const typingSweep = setInterval(() => {
+      const cutoff = Date.now();
+      setTypingUsers((current) => {
+        const entries = Object.entries(current).filter(([, user]) => user.expiresAt > cutoff);
+        if (entries.length === Object.keys(current).length) return current;
+        return Object.fromEntries(entries) as Record<string, TypingUser>;
+      });
+    }, 500);
 
     return () => {
       alive = false;
       if (refreshTimer) clearTimeout(refreshTimer);
+      if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+      if (impactTimerRef.current) clearTimeout(impactTimerRef.current);
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
       clearInterval(fallbackRefresh);
+      clearInterval(typingSweep);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      if (roomChannelRef.current === channel) roomChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [fetchSnapshot, guestId, lobby.code]);
+  }, [fetchSnapshot, guestId, guestPublicId, lobby.code]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -517,6 +632,8 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     setPlayers([]);
     setReactions([]);
     setRematchVotes([]);
+    setReactionBursts([]);
+    setTypingUsers({});
     setDraft("");
     setShowPlayers(false);
   }, [expired]);
@@ -528,6 +645,8 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       ),
     [players, guestPublicId, now],
   );
+
+  const currentPlayer = activePlayers.find((player) => player.guest_id === guestPublicId);
 
   const visible = useMemo(
     () => messages.filter((m) => !muted.includes(m.guest_id)),
@@ -581,6 +700,63 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const rematchTarget = Math.max(2, Math.ceil(Math.max(activePlayers.length, 2) / 2));
   const rematchReady = rematchVotes.length >= rematchTarget;
   const offline = connectionState === "offline";
+  const activeTypers = Object.values(typingUsers)
+    .filter((user) => user.expiresAt > now)
+    .slice(0, 3);
+  const typingText = activeTypers.length === 0
+    ? ""
+    : activeTypers.length === 1
+      ? `${activeTypers[0]!.nickname} is typing`
+      : activeTypers.length === 2
+        ? `${activeTypers[0]!.nickname} + ${activeTypers[1]!.nickname} are typing`
+        : `${activeTypers[0]!.nickname} + ${activeTypers.length - 1} others are typing`;
+
+  function broadcastTyping(active: boolean) {
+    const channel = roomChannelRef.current;
+    if (!channel || !currentPlayer || expired || offline) return;
+    void channel
+      .send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          guestId: guestPublicId,
+          nickname: currentPlayer.nickname,
+          team: currentPlayer.team,
+          active,
+        },
+      })
+      .catch(() => {});
+  }
+
+  function handleDraftChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setDraft(value);
+
+    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+
+    if (!value.trim()) {
+      if (lastTypingSentRef.current > 0) broadcastTyping(false);
+      lastTypingSentRef.current = 0;
+      return;
+    }
+
+    const timestamp = Date.now();
+    if (timestamp - lastTypingSentRef.current > 900) {
+      broadcastTyping(true);
+      lastTypingSentRef.current = timestamp;
+    }
+
+    typingStopTimerRef.current = setTimeout(() => {
+      broadcastTyping(false);
+      lastTypingSentRef.current = 0;
+    }, 1200);
+  }
+
+  function stopTyping() {
+    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+    if (lastTypingSentRef.current > 0) broadcastTyping(false);
+    lastTypingSentRef.current = 0;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -594,6 +770,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       toast.error("You're offline. Reconnect before sending.");
       return;
     }
+    stopTyping();
     setDraft("");
     try {
       await send({ data: { code: lobby.code, guestId, body: body.slice(0, 500) } });
@@ -647,12 +824,23 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     try {
       const result = await react({ data: { code: lobby.code, guestId, messageId, emoji } });
       if (result.active) {
-        const item = REACTIONS.find((reaction) => reaction.value === emoji);
-        const id = Date.now();
-        setReactionBurst({ id, messageId, label: item?.label ?? emoji });
-        window.setTimeout(() => {
-          setReactionBurst((current) => (current?.id === id ? null : current));
-        }, 650);
+        burstCounterRef.current += 1;
+        const id = Date.now() + burstCounterRef.current;
+        setReactionBursts((current) => [
+          ...current.slice(-5),
+          {
+            id,
+            messageId,
+            label: reactionLabel(emoji),
+            lane: burstCounterRef.current % 3,
+          },
+        ]);
+        setImpactMessageId(messageId);
+        if (impactTimerRef.current) clearTimeout(impactTimerRef.current);
+        impactTimerRef.current = setTimeout(() => setImpactMessageId(null), 520);
+        setTimeout(() => {
+          setReactionBursts((current) => current.filter((item) => item.id !== id));
+        }, 900);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Reaction failed.");
@@ -672,6 +860,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   async function handleLeave() {
     if (leaving) return;
     setLeaving(true);
+    stopTyping();
     try {
       await leave({ data: { code: lobby.code, guestId } });
       window.location.assign("/");
@@ -877,7 +1066,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             </div>
           )}
 
-          <div className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className={`relative min-h-0 flex-1 overflow-y-auto ${salt.level >= 4 ? "chat-energy-nuclear" : salt.level >= 3 ? "chat-energy-spicy" : ""}`}>
             <div className="pointer-events-none absolute inset-0 micro-grid opacity-[0.12]" />
             <div className="relative z-10 mx-auto w-full max-w-5xl px-3 py-5 sm:px-5 lg:px-7 lg:py-7">
               <div className="mb-5 flex items-end justify-between border-b border-border/60 pb-3">
@@ -885,10 +1074,17 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                   <p className="hud-label text-primary">Open channel</p>
                   <h2 className="mt-1 text-2xl">{expired ? "Lobby closed" : "Post-match chat"}</h2>
                 </div>
-                <span className="hud-label hidden sm:block">{expired ? "Temporary by design" : `${visible.length} messages visible`}</span>
+                <div className="hidden items-center gap-3 sm:flex">
+                  <span className="hud-label">{expired ? "Temporary by design" : `${visible.length} messages visible`}</span>
+                  {!expired && (
+                    <span className="flex items-center gap-1.5 font-mono text-[0.58rem] uppercase tracking-[0.1em] text-primary/75">
+                      <span className="size-1.5 bg-primary signal-pulse" /> Live comms
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {expired && (
                   <div className="ez-panel border-dashed p-7 text-center sm:p-12">
                     <Timer className="mx-auto size-6 text-destructive" />
@@ -912,19 +1108,34 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                   const tc = teamClasses(m.team);
                   const messageReactions = reactionsByMessage.get(m.id) ?? [];
                   const own = m.guest_id === guestPublicId;
+                  const totalReactions = messageReactions.length;
+                  const heatClass = totalReactions >= 7
+                    ? "message-on-fire"
+                    : totalReactions >= 4
+                      ? "message-heated"
+                      : "";
+                  const bursts = reactionBursts.filter((burst) => burst.messageId === m.id);
+
                   return (
                     <article
                       key={m.id}
-                      className={`msg-in group/msg relative border border-transparent px-2 py-3 transition-colors hover:border-border/70 hover:bg-surface/30 sm:px-3 ${own ? "bg-primary/[0.018]" : ""}`}
+                      className={`message-card msg-in group/msg relative border px-2 py-3 transition-all sm:px-3 ${
+                        own ? "own-message border-primary/[0.08]" : "border-border/35"
+                      } ${incomingMessageId === m.id ? "incoming-message" : ""} ${impactMessageId === m.id ? "reaction-impact" : ""} ${heatClass}`}
                     >
                       <span className={`absolute bottom-3 left-0 top-3 w-[2px] ${m.team === "blue" ? "bg-blue-team" : m.team === "red" ? "bg-red-team" : "bg-spectator"}`} />
-                      {reactionBurst?.messageId === m.id && (
-                        <span key={reactionBurst.id} className="reaction-burst pointer-events-none absolute right-3 top-1 z-20 font-mono text-sm font-bold text-primary">
-                          {reactionBurst.label}
+                      {bursts.map((burst) => (
+                        <span
+                          key={burst.id}
+                          className="reaction-burst pointer-events-none absolute top-0 z-20 font-mono text-base font-bold text-primary"
+                          style={{ right: `${12 + burst.lane * 34}px` }}
+                        >
+                          {burst.label}
                         </span>
-                      )}
+                      ))}
+
                       <div className="flex gap-3 sm:gap-4">
-                        <div className={`mt-0.5 flex size-9 shrink-0 items-center justify-center border bg-background font-mono text-[0.68rem] font-semibold uppercase ${tc.border} ${tc.text}`}>
+                        <div className={`message-avatar mt-0.5 flex size-9 shrink-0 items-center justify-center border bg-background font-mono text-[0.68rem] font-semibold uppercase ${tc.border} ${tc.text}`}>
                           {initials(m.nickname)}
                         </div>
 
@@ -935,14 +1146,19 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                               <span className="border border-primary/25 bg-primary/[0.04] px-1.5 py-0.5 font-mono text-[0.52rem] uppercase tracking-[0.12em] text-primary">You</span>
                             )}
                             <span className="font-mono text-[0.58rem] uppercase tracking-[0.1em] text-muted-foreground">{teamName(m.team)}</span>
+                            {totalReactions >= 4 && (
+                              <span className={`message-heat-badge font-mono text-[0.52rem] uppercase tracking-[0.11em] ${totalReactions >= 7 ? "text-red-300" : "text-orange-300"}`}>
+                                {totalReactions >= 7 ? "Meltdown" : "Heated"} · {totalReactions}
+                              </span>
+                            )}
                             <span className="ml-auto font-mono text-[0.58rem] text-muted-foreground/70">
                               {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
 
-                          <p className="mt-1.5 whitespace-pre-wrap break-words text-[0.92rem] leading-6 text-foreground/92 sm:text-[0.95rem]">{m.body}</p>
+                          <p className="message-body mt-1.5 whitespace-pre-wrap break-words text-[0.94rem] leading-6 text-foreground/95 sm:text-base">{m.body}</p>
 
-                          <div className="mt-2 flex min-h-9 flex-wrap items-center gap-1.5 sm:min-h-7">
+                          <div className="reaction-rail mt-2 flex min-h-9 flex-wrap items-center gap-1.5 sm:min-h-7">
                             {REACTIONS.map((item) => {
                               const count = messageReactions.filter((r) => r.emoji === item.value).length;
                               const active = messageReactions.some((r) => r.emoji === item.value && r.guest_id === guestPublicId);
@@ -953,16 +1169,17 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                                   disabled={expired || offline}
                                   onClick={() => handleReaction(m.id, item.value)}
                                   aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
+                                  aria-pressed={active}
                                   title={item.title}
-                                  className={`min-h-9 min-w-9 border px-2 py-1.5 font-mono text-[0.62rem] transition-all disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:py-1 ${
+                                  className={`reaction-chip min-h-9 min-w-9 border px-2 py-1.5 font-mono text-[0.64rem] transition-all disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:py-1 ${
                                     active
-                                      ? "border-primary bg-primary/[0.09] text-primary"
+                                      ? "reaction-chip-active border-primary bg-primary/[0.12] text-primary"
                                       : count
-                                        ? "border-border bg-background/55 text-foreground hover:border-primary hover:text-primary"
-                                        : "border-border/55 bg-background/30 text-muted-foreground hover:border-primary hover:text-primary sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
+                                        ? "border-border bg-background/70 text-foreground"
+                                        : "border-border/50 bg-background/35 text-muted-foreground"
                                   }`}
                                 >
-                                  {item.label}{count ? ` ${count}` : ""}
+                                  <span className="reaction-label">{item.label}</span>{count ? <span className="ml-1 tabular-nums">{count}</span> : null}
                                 </button>
                               );
                             })}
@@ -993,7 +1210,28 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             </div>
           </div>
 
-          <form onSubmit={submit} className="mobile-safe-bottom relative border-t border-border/80 bg-background/92 px-3 pt-3 sm:px-4 lg:px-6">
+          <div className="live-activity-strip flex min-h-8 items-center justify-between gap-3 border-t border-border/70 bg-surface/25 px-3 py-1.5 sm:px-4 lg:px-6" aria-live="polite">
+            <div className="min-w-0 flex-1">
+              {typingText ? (
+                <div className="flex min-w-0 items-center gap-2 text-primary">
+                  <TypingDots />
+                  <span className="truncate font-mono text-[0.62rem] uppercase tracking-[0.1em]">{typingText}</span>
+                </div>
+              ) : (
+                <span className="font-mono text-[0.58rem] uppercase tracking-[0.11em] text-muted-foreground">
+                  {activePlayers.length} connected · reactions are live
+                </span>
+              )}
+            </div>
+            <span className={`hidden shrink-0 font-mono text-[0.58rem] uppercase tracking-[0.11em] sm:inline ${salt.className}`}>
+              Salt {salt.label} · {Math.min(salt.score, 99)}
+            </span>
+          </div>
+
+          <form
+            onSubmit={submit}
+            className={`mobile-safe-bottom composer-shell relative border-t border-border/80 bg-background/92 px-3 pt-3 sm:px-4 lg:px-6 ${draft.trim() ? "composer-live" : ""}`}
+          >
             <div className="mx-auto w-full max-w-5xl">
               <div className="flex items-stretch gap-2">
                 <div className="relative min-w-0 flex-1">
@@ -1001,19 +1239,20 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                     value={draft}
                     rows={2}
                     maxLength={500}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={handleDraftChange}
+                    onBlur={stopTyping}
                     onKeyDown={handleComposerKeyDown}
                     disabled={expired || offline}
-                    placeholder={expired ? "Lobby closed" : offline ? "Connection lost — reconnecting…" : "Message the lobby…"}
+                    placeholder={expired ? "Lobby closed" : offline ? "Connection lost — reconnecting…" : "Fire back…"}
                     aria-label="Message"
-                    className="min-h-12 max-h-28 w-full resize-none border border-border bg-surface/40 px-3 py-3 pr-14 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50"
+                    className={`min-h-12 max-h-28 w-full resize-none border bg-surface/40 px-3 py-3 pr-14 text-sm leading-5 outline-none transition-all placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50 ${draft.trim() ? "composer-armed border-primary/45" : "border-border"}`}
                   />
                   <span className="pointer-events-none absolute bottom-2.5 right-3 font-mono text-[0.56rem] text-muted-foreground/65">{draft.length}/500</span>
                 </div>
                 <button
                   disabled={expired || offline || !draft.trim()}
                   aria-label="Send message"
-                  className="tactical-button flex min-h-12 min-w-12 items-center justify-center gap-2 bg-primary px-3 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
+                  className={`tactical-button flex min-h-12 min-w-12 items-center justify-center gap-2 bg-primary px-3 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:px-5 ${draft.trim() && !expired && !offline ? "send-ready" : ""}`}
                 >
                   <Send className="size-4" /> <span className="hidden sm:inline">Send</span>
                 </button>
@@ -1027,6 +1266,16 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         </main>
       </div>
     </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="typing-dots flex shrink-0 items-center gap-1" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
   );
 }
 
@@ -1093,7 +1342,7 @@ function PlayerList({
                 return (
                   <li
                     key={p.id}
-                    className={`group flex min-h-11 items-center gap-2.5 border border-border/55 bg-surface/25 px-2.5 py-1.5 ${self ? "border-primary/30 bg-primary/[0.025]" : ""}`}
+                    className={`player-row group flex min-h-11 items-center gap-2.5 border border-border/55 bg-surface/25 px-2.5 py-1.5 ${self ? "border-primary/30 bg-primary/[0.025]" : ""}`}
                   >
                     <span className={`flex size-7 shrink-0 items-center justify-center border bg-background font-mono text-[0.58rem] font-semibold ${tc.border} ${tc.text}`}>
                       {initials(p.nickname)}
@@ -1102,7 +1351,7 @@ function PlayerList({
                       {p.nickname}
                       {self && <span className="ml-1 font-mono text-[0.55rem] uppercase tracking-[0.08em] text-primary">you</span>}
                     </span>
-                    <span className="size-1.5 shrink-0 bg-primary/80" title="Online" />
+                    <span className="online-dot size-1.5 shrink-0 bg-primary/80" title="Online" />
                     {!self && (
                       <button
                         aria-label={isMuted ? `Unmute ${p.nickname}` : `Mute ${p.nickname}`}
