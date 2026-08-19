@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
+import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
 import { Toaster } from "@/components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -142,6 +143,7 @@ function RootComponent() {
       <Outlet />
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
+      <LobbyShowtimeLayer />
       <Toaster />
     </QueryClientProvider>
   );
