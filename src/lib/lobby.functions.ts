@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const teamSchema = z.enum(["blue", "red", "spectator"]);
+const reactionSchema = z.enum(["GG", "skull", "salt", "clown"]);
 const codeSchema = z.string().regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/);
 const nickSchema = z
   .string()
@@ -52,7 +53,14 @@ export const joinLobby = createServerFn({ method: "POST" })
       p_team: data.team,
     });
     if (error) throw new Error(error.message);
-    const rows = result as { out_ok: boolean; out_reason: string | null; out_code: string | null; out_game: string | null }[] | null;
+    const rows = result as
+      | {
+          out_ok: boolean;
+          out_reason: string | null;
+          out_code: string | null;
+          out_game: string | null;
+        }[]
+      | null;
     const r = rows?.[0];
     if (!r || !r.out_ok) {
       return { ok: false as const, reason: r?.out_reason ?? "Could not join lobby." };
@@ -96,6 +104,7 @@ export const getLobby = createServerFn({ method: "GET" })
       .from("lobbies")
       .select("id, code, game, created_at, expires_at, last_activity_at")
       .eq("code", data.code)
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (!lobby) return null;
     let joined = false;
@@ -124,13 +133,16 @@ export const reportMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.rpc("report_message", {
+    const { data: result, error } = await supabaseAdmin.rpc("report_message", {
       p_code: data.code,
       p_guest_id: data.guestId,
       p_message_id: data.messageId,
       p_reason: data.reason,
     });
     if (error) throw new Error(error.message);
+    const rows = result as { out_ok: boolean; out_reason: string | null }[] | null;
+    const r = rows?.[0];
+    if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Could not report that message.");
     return { ok: true };
   });
 
@@ -138,10 +150,71 @@ export const touchPresence = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.rpc("touch_presence", {
+    const { data: result, error } = await supabaseAdmin.rpc("touch_presence", {
       p_code: data.code,
       p_guest_id: data.guestId,
     });
     if (error) throw new Error(error.message);
+    const rows = result as { out_ok: boolean }[] | null;
+    if (!rows?.[0]?.out_ok) throw new Error("Could not refresh presence.");
+    return { ok: true };
+  });
+
+export const toggleReaction = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        code: codeSchema,
+        guestId: guestSchema,
+        messageId: z.string().uuid(),
+        emoji: reactionSchema,
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: result, error } = await supabaseAdmin.rpc("toggle_reaction", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+      p_message_id: data.messageId,
+      p_emoji: data.emoji,
+    });
+    if (error) throw new Error(error.message);
+    const rows = result as
+      | { out_ok: boolean; out_reason: string | null; out_active: boolean }[]
+      | null;
+    const r = rows?.[0];
+    if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Reaction failed.");
+    return { ok: true, active: r.out_active };
+  });
+
+export const toggleRematchVote = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: result, error } = await supabaseAdmin.rpc("toggle_rematch_vote", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+    });
+    if (error) throw new Error(error.message);
+    const rows = result as
+      | { out_ok: boolean; out_reason: string | null; out_active: boolean; out_count: number }[]
+      | null;
+    const r = rows?.[0];
+    if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Rematch vote failed.");
+    return { ok: true, active: r.out_active, count: r.out_count };
+  });
+
+export const leaveLobby = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: result, error } = await supabaseAdmin.rpc("leave_lobby", {
+      p_code: data.code,
+      p_guest_id: data.guestId,
+    });
+    if (error) throw new Error(error.message);
+    const rows = result as { out_ok: boolean }[] | null;
+    if (!rows?.[0]?.out_ok) throw new Error("Could not leave lobby.");
     return { ok: true };
   });

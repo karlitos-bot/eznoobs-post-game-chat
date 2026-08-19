@@ -2,7 +2,17 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Check, Users, X, VolumeX, Volume2, Flag } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Flag,
+  LogOut,
+  RotateCcw,
+  Users,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/eznoobs/Logo";
@@ -10,18 +20,21 @@ import { SafetyNote } from "@/components/eznoobs/SafetyNote";
 import {
   getLobby,
   joinLobby,
-  sendMessage,
+  leaveLobby,
   reportMessage,
+  sendMessage,
+  toggleReaction,
+  toggleRematchVote,
   touchPresence,
 } from "@/lib/lobby.functions";
 import {
+  CODE_RE,
   TEAMS,
-  type Team,
   getGuestId,
   lastNickname,
   rememberNickname,
   teamClasses,
-  CODE_RE,
+  type Team,
 } from "@/lib/eznoobs";
 
 export const Route = createFileRoute("/room/$code")({
@@ -52,7 +65,28 @@ type Message = {
   body: string;
   created_at: string;
 };
-type Participant = { id: string; guest_id: string; nickname: string; team: Team };
+type Participant = {
+  id: string;
+  guest_id: string;
+  nickname: string;
+  team: Team;
+  last_seen_at: string;
+};
+type ReactionName = "GG" | "skull" | "salt" | "clown";
+type Reaction = {
+  id: string;
+  message_id: string;
+  guest_id: string;
+  emoji: ReactionName;
+};
+type RematchVote = { id: string; guest_id: string };
+
+const REACTIONS: { value: ReactionName; label: string }[] = [
+  { value: "GG", label: "GG" },
+  { value: "skull", label: "☠" },
+  { value: "salt", label: "🧂" },
+  { value: "clown", label: "🤡" },
+];
 
 function RoomPage() {
   const { code: rawCode } = useParams({ from: "/room/$code" });
@@ -89,9 +123,11 @@ function RoomPage() {
   }, [code, fetchLobby]);
 
   if (state === "loading")
-    return <Centered>
-      <p className="hud-label">Pinging lobby…</p>
-    </Centered>;
+    return (
+      <Centered>
+        <p className="hud-label">Pinging lobby…</p>
+      </Centered>
+    );
 
   if (state === "missing")
     return (
@@ -229,58 +265,89 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const send = useServerFn(sendMessage);
   const report = useServerFn(reportMessage);
   const heartbeat = useServerFn(touchPresence);
+  const react = useServerFn(toggleReaction);
+  const voteRematch = useServerFn(toggleRematchVote);
+  const leave = useServerFn(leaveLobby);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [players, setPlayers] = useState<Participant[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [rematchVotes, setRematchVotes] = useState<RematchVote[]>([]);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [muted, setMuted] = useState<string[]>([]);
   const [expiresAt, setExpiresAt] = useState(lobby.expires_at);
   const [now, setNow] = useState(() => Date.now());
+  const [leaving, setLeaving] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
-    async function load() {
-      const [m, p] = await Promise.all([
-        supabase
-          .from("messages")
-          .select("id, guest_id, nickname, team, body, created_at")
-          .eq("lobby_id", lobby.id)
-          .order("created_at", { ascending: true })
-          .limit(200),
-        supabase
-          .from("participants")
-          .select("id, guest_id, nickname, team")
-          .eq("lobby_id", lobby.id),
-      ]);
-      if (!alive) return;
-      setMessages((m.data ?? []) as Message[]);
-      setPlayers((p.data ?? []) as Participant[]);
+
+    async function refreshPlayers() {
+      const { data } = await supabase
+        .from("participants")
+        .select("id, guest_id, nickname, team, last_seen_at")
+        .eq("lobby_id", lobby.id);
+      if (alive) setPlayers((data ?? []) as Participant[]);
     }
-    load();
+
+    async function refreshReactions() {
+      const { data } = await supabase
+        .from("reactions")
+        .select("id, message_id, guest_id, emoji")
+        .eq("lobby_id", lobby.id);
+      if (alive) setReactions((data ?? []) as Reaction[]);
+    }
+
+    async function refreshRematchVotes() {
+      const { data } = await supabase
+        .from("rematch_votes")
+        .select("id, guest_id")
+        .eq("lobby_id", lobby.id);
+      if (alive) setRematchVotes((data ?? []) as RematchVote[]);
+    }
+
+    async function load() {
+      const { data } = await supabase
+        .from("messages")
+        .select("id, guest_id, nickname, team, body, created_at")
+        .eq("lobby_id", lobby.id)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (alive) setMessages((data ?? []) as Message[]);
+      await Promise.all([refreshPlayers(), refreshReactions(), refreshRematchVotes()]);
+    }
+
+    void load();
 
     const channel = supabase
       .channel(`lobby-${lobby.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `lobby_id=eq.${lobby.id}` },
-        (payload) => setMessages((prev) =>
-          prev.some((m) => m.id === (payload.new as Message).id)
-            ? prev
-            : [...prev, payload.new as Message],
-        ),
+        (payload) =>
+          setMessages((prev) =>
+            prev.some((m) => m.id === (payload.new as Message).id)
+              ? prev
+              : [...prev, payload.new as Message],
+          ),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "participants", filter: `lobby_id=eq.${lobby.id}` },
-        () => {
-          supabase
-            .from("participants")
-            .select("id, guest_id, nickname, team")
-            .eq("lobby_id", lobby.id)
-            .then(({ data }) => setPlayers((data ?? []) as Participant[]));
-        },
+        () => void refreshPlayers(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reactions", filter: `lobby_id=eq.${lobby.id}` },
+        () => void refreshReactions(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rematch_votes", filter: `lobby_id=eq.${lobby.id}` },
+        () => void refreshRematchVotes(),
       )
       .on(
         "postgres_changes",
@@ -291,7 +358,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
     return () => {
       alive = false;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [lobby.id]);
 
@@ -303,6 +370,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   useEffect(() => {
     if (!guestId) return;
     const ping = () => void heartbeat({ data: { code: lobby.code, guestId } }).catch(() => {});
+    ping();
     const t = setInterval(ping, 60_000);
     return () => clearInterval(t);
   }, [guestId, lobby.code, heartbeat]);
@@ -311,6 +379,14 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  const activePlayers = useMemo(
+    () =>
+      players.filter(
+        (p) => p.guest_id === guestId || now - new Date(p.last_seen_at).getTime() < 150_000,
+      ),
+    [players, guestId, now],
+  );
+
   const visible = useMemo(
     () => messages.filter((m) => !muted.includes(m.guest_id)),
     [messages, muted],
@@ -318,25 +394,34 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
 
   const grouped = useMemo(
     () => ({
-      blue: players.filter((p) => p.team === "blue"),
-      red: players.filter((p) => p.team === "red"),
-      spectator: players.filter((p) => p.team === "spectator"),
+      blue: activePlayers.filter((p) => p.team === "blue"),
+      red: activePlayers.filter((p) => p.team === "red"),
+      spectator: activePlayers.filter((p) => p.team === "spectator"),
     }),
-    [players],
+    [activePlayers],
   );
 
+  const reactionsByMessage = useMemo(() => {
+    const map = new Map<string, Reaction[]>();
+    for (const reaction of reactions) {
+      const list = map.get(reaction.message_id) ?? [];
+      list.push(reaction);
+      map.set(reaction.message_id, list);
+    }
+    return map;
+  }, [reactions]);
+
   const salt = useMemo(() => {
-    const recent = messages.filter(
-      (m) => Date.now() - new Date(m.created_at).getTime() < 60_000,
-    ).length;
+    const recent = messages.filter((m) => now - new Date(m.created_at).getTime() < 60_000).length;
     if (recent > 14) return "NUCLEAR";
     if (recent > 7) return "SPICY";
     if (recent > 2) return "WARM";
     return "CALM";
-  }, [messages]);
+  }, [messages, now]);
 
   const minutesLeft = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60000));
   const expired = new Date(expiresAt).getTime() <= now;
+  const hasRematchVote = rematchVotes.some((v) => v.guest_id === guestId);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -364,9 +449,39 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     });
   }
 
+  async function handleReaction(messageId: string, emoji: ReactionName) {
+    if (expired) return;
+    try {
+      await react({ data: { code: lobby.code, guestId, messageId, emoji } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Reaction failed.");
+    }
+  }
+
+  async function handleRematch() {
+    if (expired) return;
+    try {
+      const result = await voteRematch({ data: { code: lobby.code, guestId } });
+      toast.success(result.active ? "You want the rematch." : "Rematch vote removed.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Rematch vote failed.");
+    }
+  }
+
+  async function handleLeave() {
+    setLeaving(true);
+    try {
+      await leave({ data: { code: lobby.code, guestId } });
+      window.location.assign("/");
+    } catch (err) {
+      setLeaving(false);
+      toast.error(err instanceof Error ? err.message : "Could not leave lobby.");
+    }
+  }
+
   return (
     <div className="flex h-[100dvh] flex-col bg-background">
-      <header className="relative z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-surface/70 px-4 py-3">
+      <header className="relative z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-surface/70 px-4 py-3">
         <Logo className="text-lg" />
         <span className="hud-label hidden sm:inline">{lobby.game}</span>
         <span className="flex items-center gap-2 border border-border px-2 py-1 font-mono text-sm tracking-[0.24em] text-primary">
@@ -378,25 +493,45 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         >
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} Invite
         </button>
+        <button
+          onClick={handleRematch}
+          disabled={expired}
+          className={`flex items-center gap-2 border px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] transition-colors disabled:opacity-40 ${
+            hasRematchVote
+              ? "border-primary text-primary"
+              : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+          }`}
+        >
+          <RotateCcw className="size-3.5" /> Rematch {rematchVotes.length || ""}
+        </button>
         <div className="ml-auto flex items-center gap-3">
           <span className="hud-label flex items-center gap-1.5 text-primary">
             <span className="inline-block size-1.5 animate-pulse bg-primary" /> Live
           </span>
           <span className="hud-label hidden md:inline">Salt: {salt}</span>
-          <span className="hud-label hidden lg:inline">
+          <span className="hud-label hidden xl:inline">
             {expired ? "Expired" : `Expires in ~${minutesLeft}m idle`}
           </span>
           <button
             onClick={() => setShowPlayers(true)}
             className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground lg:hidden"
           >
-            <Users className="size-3.5" /> {players.length}
+            <Users className="size-3.5" /> {activePlayers.length}
+          </button>
+          <button
+            onClick={handleLeave}
+            disabled={leaving}
+            aria-label="Leave lobby"
+            className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
+          >
+            <LogOut className="size-3.5" /> <span className="hidden sm:inline">Leave</span>
           </button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-surface/40 p-4 lg:block">
+          <p className="hud-label mb-4">Online · {activePlayers.length}</p>
           <PlayerList grouped={grouped} guestId={guestId} muted={muted} setMuted={setMuted} />
         </aside>
 
@@ -406,16 +541,23 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             <div className="w-72 overflow-y-auto border-l border-border bg-surface p-4">
               <button
                 onClick={() => setShowPlayers(false)}
-                className="mb-4 flex items-center gap-2 hud-label"
+                className="mb-2 flex items-center gap-2 hud-label"
               >
                 <X className="size-3.5" /> Close
               </button>
+              <p className="hud-label mb-4">Online · {activePlayers.length}</p>
               <PlayerList grouped={grouped} guestId={guestId} muted={muted} setMuted={setMuted} />
             </div>
           </div>
         )}
 
         <main className="flex min-h-0 flex-1 flex-col">
+          {rematchVotes.length >= 2 && (
+            <div className="border-b border-primary/30 bg-primary/5 px-4 py-2 text-center font-mono text-[0.68rem] uppercase tracking-[0.16em] text-primary">
+              {rematchVotes.length} players want the runback. Queue it up.
+            </div>
+          )}
+
           <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4">
             <div className="pointer-events-none absolute inset-0 grid-bg opacity-20" />
             <div className="relative z-10 space-y-2.5">
@@ -424,6 +566,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
               )}
               {visible.map((m) => {
                 const tc = teamClasses(m.team);
+                const messageReactions = reactionsByMessage.get(m.id) ?? [];
                 return (
                   <div key={m.id} className="msg-in group/msg flex gap-3 text-sm">
                     <span className="hud-label mt-1 w-11 shrink-0 text-right">
@@ -432,7 +575,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                         minute: "2-digit",
                       })}
                     </span>
-                    <div className={`min-w-0 border-l-2 pl-3 ${tc.border}`}>
+                    <div className={`min-w-0 flex-1 border-l-2 pl-3 ${tc.border}`}>
                       <span className={`font-mono text-xs font-semibold ${tc.text}`}>
                         {m.nickname}
                         {m.guest_id === guestId && (
@@ -440,22 +583,55 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                         )}
                       </span>
                       <p className="break-words text-foreground/90">{m.body}</p>
-                      {m.guest_id !== guestId && (
-                        <button
-                          type="button"
-                          aria-label={`Report message from ${m.nickname}`}
-                          onClick={() =>
-                            report({
-                              data: { code: lobby.code, guestId, messageId: m.id, reason: "abuse" },
-                            })
-                              .then(() => toast.success("Reported. Thanks."))
-                              .catch(() => toast.error("Could not report that message."))
-                          }
-                          className="mt-1 hidden items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-destructive group-hover/msg:flex"
-                        >
-                          <Flag className="size-3" /> Report
-                        </button>
-                      )}
+
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {REACTIONS.map((item) => {
+                          const count = messageReactions.filter((r) => r.emoji === item.value).length;
+                          const active = messageReactions.some(
+                            (r) => r.emoji === item.value && r.guest_id === guestId,
+                          );
+                          return (
+                            <button
+                              key={item.value}
+                              type="button"
+                              disabled={expired}
+                              onClick={() => handleReaction(m.id, item.value)}
+                              aria-label={`${item.value} reaction${count ? `, ${count}` : ""}`}
+                              className={`border px-1.5 py-0.5 font-mono text-[0.64rem] transition-colors disabled:opacity-40 ${
+                                active
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : count
+                                    ? "border-border text-foreground hover:border-primary hover:text-primary"
+                                    : "border-transparent text-muted-foreground opacity-0 hover:text-primary group-hover/msg:opacity-100 focus:opacity-100"
+                              }`}
+                            >
+                              {item.label}{count ? ` ${count}` : ""}
+                            </button>
+                          );
+                        })}
+
+                        {m.guest_id !== guestId && (
+                          <button
+                            type="button"
+                            aria-label={`Report message from ${m.nickname}`}
+                            onClick={() =>
+                              report({
+                                data: {
+                                  code: lobby.code,
+                                  guestId,
+                                  messageId: m.id,
+                                  reason: "abuse",
+                                },
+                              })
+                                .then(() => toast.success("Reported. Thanks."))
+                                .catch(() => toast.error("Could not report that message."))
+                            }
+                            className="ml-1 hidden items-center gap-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-destructive group-hover/msg:flex"
+                          >
+                            <Flag className="size-3" /> Report
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -547,7 +723,11 @@ function PlayerList({
                         }
                         className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus:opacity-100"
                       >
-                        {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+                        {isMuted ? (
+                          <VolumeX className="size-3.5" />
+                        ) : (
+                          <Volume2 className="size-3.5" />
+                        )}
                       </button>
                     )}
                   </li>
