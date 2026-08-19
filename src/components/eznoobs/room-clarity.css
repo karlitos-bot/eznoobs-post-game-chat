@@ -40,14 +40,21 @@
 }
 
 .ez-opening-shots-clean {
-  top: 51vh !important;
-  bottom: auto !important;
-  width: min(86vw, 34rem) !important;
-  transform: translate(-50%, -18%) !important;
-  padding: 0.75rem !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: calc(100dvh - var(--ez-composer-top, 0px) + 0.5rem) !important;
+  left: var(--ez-composer-left, 50%) !important;
+  width: var(--ez-composer-width, min(86vw, 64rem)) !important;
+  max-width: none !important;
+  transform: none !important;
+  padding: 0.6rem 0.75rem !important;
   border-color: color-mix(in oklab, var(--border) 84%, var(--primary) 16%) !important;
-  background: color-mix(in oklab, var(--background) 96%, var(--surface) 4%) !important;
-  box-shadow: 0 14px 44px color-mix(in oklab, black 18%, transparent) !important;
+  background: color-mix(in oklab, var(--background) 97%, var(--surface) 3%) !important;
+  box-shadow: 0 10px 30px color-mix(in oklab, black 15%, transparent) !important;
+}
+
+.ez-opening-shots-clean > div:first-child {
+  padding-bottom: 0.45rem !important;
 }
 
 .ez-opening-shots-clean button {
