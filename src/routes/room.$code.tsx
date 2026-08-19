@@ -38,7 +38,8 @@ import {
   getGuestId,
   getGuestPublicId,
   lastNickname,
-  rememberNickname,
+  lastTeam,
+  rememberLobbyPreferences,
   teamClasses,
   type Team,
 } from "@/lib/eznoobs";
@@ -152,7 +153,7 @@ function RoomPage() {
           </p>
           <Link
             to="/"
-            className="tactical-button mt-6 inline-flex items-center gap-2 bg-primary px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground"
+            className="tactical-button mt-6 inline-flex min-h-11 items-center gap-2 bg-primary px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground"
           >
             Create a lobby
           </Link>
@@ -197,12 +198,19 @@ function JoinGate({
   join: ReturnType<typeof useServerFn<typeof joinLobby>>;
   guestId: string;
 }) {
-  const [nickname, setNickname] = useState(lastNickname());
+  const [nickname, setNickname] = useState("");
   const [team, setTeam] = useState<Team>("blue");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    setNickname(lastNickname());
+    setTeam(lastTeam());
+  }, []);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+
     const nick = nickname.trim();
     if (nick.length < 2) {
       toast.error("Nickname needs at least 2 characters.");
@@ -215,7 +223,7 @@ function JoinGate({
         toast.error(res.reason);
         return;
       }
-      rememberNickname(nick);
+      rememberLobbyPreferences({ nickname: nick, team });
       onJoined();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not join.");
@@ -231,7 +239,7 @@ function JoinGate({
         className="ez-panel-strong corner-cut relative w-[min(94vw,31rem)] overflow-hidden text-left"
       >
         <div className="pointer-events-none absolute inset-0 micro-grid opacity-20" />
-        <div className="relative border-b border-border/70 px-6 py-5">
+        <div className="relative border-b border-border/70 px-5 py-5 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <Logo className="text-xl" />
             <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.15em] text-primary">
@@ -243,16 +251,16 @@ function JoinGate({
               <p className="hud-label">Room code</p>
               <p className="mt-1 font-mono text-2xl tracking-[0.26em] text-primary">{lobby.code}</p>
             </div>
-            <div className="text-right">
+            <div className="min-w-0 text-right">
               <p className="hud-label">Game</p>
-              <p className="mt-1 text-sm text-foreground">{lobby.game}</p>
+              <p className="mt-1 truncate text-sm text-foreground">{lobby.game}</p>
             </div>
           </div>
           <h1 className="mt-5 text-4xl">Drop into comms</h1>
           <p className="mt-2 text-sm text-muted-foreground">No account. Pick a name and a side.</p>
         </div>
 
-        <div className="relative space-y-5 px-6 py-6">
+        <div className="relative space-y-5 px-5 py-5 sm:px-6 sm:py-6">
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="hud-label" htmlFor="nick">Nickname</label>
@@ -263,9 +271,14 @@ function JoinGate({
               autoFocus
               maxLength={20}
               value={nickname}
+              disabled={busy}
+              autoComplete="nickname"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
               onChange={(e) => setNickname(e.target.value)}
               placeholder="ghostpeek"
-              className="w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary"
+              className="min-h-11 w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary disabled:cursor-wait disabled:opacity-60"
             />
           </div>
 
@@ -276,8 +289,9 @@ function JoinGate({
                 <button
                   type="button"
                   key={t.value}
+                  disabled={busy}
                   onClick={() => setTeam(t.value)}
-                  className={`border px-2 py-3 font-mono text-[0.64rem] uppercase tracking-[0.11em] transition-all ${
+                  className={`min-h-11 border px-2 py-3 font-mono text-[0.64rem] uppercase tracking-[0.11em] transition-all disabled:cursor-wait disabled:opacity-60 ${
                     team === t.value
                       ? t.value === "blue"
                         ? "border-blue-team bg-blue-team/[0.08] text-blue-team"
@@ -295,7 +309,8 @@ function JoinGate({
 
           <button
             disabled={busy}
-            className="tactical-button flex w-full items-center justify-center gap-2 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-60"
+            aria-busy={busy}
+            className="tactical-button flex min-h-12 w-full items-center justify-center gap-2 bg-primary py-3.5 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground disabled:cursor-wait disabled:opacity-60"
           >
             {busy ? "Connecting…" : "Enter lobby"}
           </button>
@@ -425,6 +440,15 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  useEffect(() => {
+    if (!showPlayers) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showPlayers]);
+
   const activePlayers = useMemo(
     () =>
       players.filter(
@@ -498,8 +522,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     }
   }
 
-  async function copyInvite() {
-    const url = `${window.location.origin}/room/${lobby.code}`;
+  async function copyInviteUrl(url: string) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -508,6 +531,34 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     } catch {
       toast.error("Could not copy the invite link.");
     }
+  }
+
+  async function shareInvite() {
+    const url = `${window.location.origin}/room/${lobby.code}`;
+    const prefersNativeShare =
+      typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches;
+
+    if (prefersNativeShare) {
+      try {
+        await navigator.share({
+          title: `EZNOOBS lobby ${lobby.code}`,
+          text: `Join my ${lobby.game} post-game lobby on EZNOOBS.`,
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+
+    await copyInviteUrl(url);
+  }
+
+  function handleComposerKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    e.preventDefault();
+    e.currentTarget.form?.requestSubmit();
   }
 
   async function handleReaction(messageId: string, emoji: ReactionName) {
@@ -547,7 +598,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       <div className="pointer-events-none absolute inset-0 radar-glow opacity-55" />
 
       <header className="relative z-20 border-b border-border/80 bg-background/90 backdrop-blur-sm">
-        <div className="flex min-h-14 items-center gap-3 px-3 py-2.5 sm:px-4 lg:px-5">
+        <div className="flex min-h-14 items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 lg:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <Logo className="shrink-0 text-lg sm:text-xl" />
             <span className="hidden h-5 w-px bg-border md:block" />
@@ -557,79 +608,88 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2 lg:ml-6">
-            <div className="flex items-center border border-primary/30 bg-primary/[0.04] px-2.5 py-1.5">
-              <Hash className="mr-1.5 size-3.5 text-primary" />
-              <span className="font-mono text-sm tracking-[0.22em] text-primary sm:text-base">{lobby.code}</span>
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <div className="flex min-h-10 items-center border border-primary/30 bg-primary/[0.04] px-2 sm:px-2.5">
+              <Hash className="mr-1 size-3 text-primary sm:mr-1.5 sm:size-3.5" />
+              <span className="font-mono text-xs tracking-[0.18em] text-primary sm:text-base sm:tracking-[0.22em]">{lobby.code}</span>
             </div>
             <span
-              className={`hidden items-center gap-1.5 font-mono text-[0.6rem] uppercase tracking-[0.15em] sm:flex ${
+              className={`flex min-h-10 items-center gap-1.5 px-1 font-mono text-[0.56rem] uppercase tracking-[0.12em] sm:text-[0.6rem] sm:tracking-[0.15em] ${
                 expired ? "text-destructive" : "text-primary"
               }`}
             >
-              <span className={`size-1.5 ${expired ? "bg-destructive" : "bg-primary signal-pulse"}`} />
+              <span className={`size-1.5 shrink-0 ${expired ? "bg-destructive" : "bg-primary signal-pulse"}`} />
               {expired ? "Ended" : "Live"}
             </span>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2 lg:ml-3">
             <button
               onClick={() => setShowPlayers(true)}
-              className="flex items-center gap-1.5 border border-border bg-surface/40 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground lg:hidden"
+              aria-label={`Open player list, ${activePlayers.length} online`}
+              className="touch-target flex items-center justify-center gap-1.5 border border-border bg-surface/40 px-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-muted-foreground lg:hidden"
             >
               <Users className="size-3.5" /> {activePlayers.length}
             </button>
+          </div>
+        </div>
+
+        <div className="flex min-h-12 items-center gap-2 border-t border-border/60 bg-surface/25 px-3 py-1.5 sm:px-4 lg:px-5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-foreground/75 sm:hidden">{lobby.game}</p>
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
+                <span className="hud-label">Salt</span>
+                <SaltMeter level={salt.level} label={salt.label} className={salt.className} />
+              </div>
+              <div className="hidden shrink-0 items-center gap-2 border-r border-border/70 pr-3 md:flex">
+                <Timer className="size-3.5 text-muted-foreground" />
+                <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+                  {expired ? "Read-only" : `~${minutesLeft}m idle`}
+                </span>
+              </div>
+              <div className="hidden shrink-0 items-center gap-2 border-r border-border/70 pr-3 lg:flex">
+                <Users className="size-3.5 text-muted-foreground" />
+                <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+                  {activePlayers.length} online
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <button
-              onClick={copyInvite}
-              className="tactical-button flex items-center gap-1.5 border border-border bg-surface/45 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:px-3"
+              onClick={shareInvite}
+              aria-label="Invite players to this lobby"
+              title="Invite players"
+              className="tactical-button flex min-h-10 items-center gap-1.5 border border-border bg-surface/45 px-2.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-primary hover:text-primary sm:px-3 sm:text-[0.62rem] sm:tracking-[0.12em]"
             >
               {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-              <span className="hidden sm:inline">Invite</span>
+              <span>Invite</span>
+            </button>
+            <button
+              onClick={handleRematch}
+              disabled={expired}
+              aria-label="Vote for a rematch"
+              title="Run it back"
+              className={`flex min-h-10 items-center gap-1.5 border px-2.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] transition-all disabled:opacity-40 sm:px-3 sm:text-[0.62rem] sm:tracking-[0.12em] ${
+                hasRematchVote
+                  ? "border-primary bg-primary/[0.07] text-primary"
+                  : "border-border bg-background/45 text-muted-foreground hover:border-primary hover:text-primary"
+              }`}
+            >
+              <RotateCcw className="size-3.5" />
+              <span className="hidden sm:inline">Run it back</span>
+              {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}</span>}
             </button>
             <button
               onClick={handleLeave}
               disabled={leaving}
               aria-label="Leave lobby"
-              className="flex items-center gap-1.5 border border-border bg-surface/45 px-2.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
+              title="Leave lobby"
+              className="touch-target flex items-center justify-center border border-border bg-surface/45 px-2 text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:cursor-wait disabled:opacity-40"
             >
               <LogOut className="size-3.5" />
-              <span className="hidden xl:inline">Leave</span>
+              <span className="sr-only">Leave</span>
             </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto border-t border-border/60 bg-surface/25 px-3 py-2 sm:px-4 lg:px-5">
-          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
-            <span className="hud-label">Salt</span>
-            <SaltMeter level={salt.level} label={salt.label} className={salt.className} />
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3">
-            <Timer className="size-3.5 text-muted-foreground" />
-            <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
-              {expired ? "Read-only" : `~${minutesLeft}m idle`}
-            </span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 border-r border-border/70 pr-3 lg:hidden">
-            <Users className="size-3.5 text-muted-foreground" />
-            <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
-              {activePlayers.length} online
-            </span>
-          </div>
-
-          <button
-            onClick={handleRematch}
-            disabled={expired}
-            className={`ml-auto flex shrink-0 items-center gap-2 border px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] transition-all disabled:opacity-40 ${
-              hasRematchVote
-                ? "border-primary bg-primary/[0.07] text-primary"
-                : "border-border bg-background/45 text-muted-foreground hover:border-primary hover:text-primary"
-            }`}
-          >
-            <RotateCcw className="size-3.5" /> Run it back
-            {rematchVotes.length > 0 && <span className="text-primary">{rematchVotes.length}</span>}
-          </button>
         </div>
       </header>
 
@@ -658,15 +718,16 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         {showPlayers && (
           <div className="fixed inset-0 z-30 flex lg:hidden">
             <div className="flex-1 bg-background/75 backdrop-blur-[2px]" onClick={() => setShowPlayers(false)} />
-            <div className="flex w-[min(84vw,20rem)] flex-col border-l border-border bg-background">
-              <div className="flex items-center justify-between border-b border-border px-4 py-4">
+            <div className="mobile-safe-top mobile-safe-bottom flex w-[min(86vw,20rem)] flex-col border-l border-border bg-background">
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
                 <div>
                   <p className="hud-label text-primary">Roster</p>
                   <h2 className="mt-1 text-xl">{activePlayers.length} online</h2>
                 </div>
                 <button
                   onClick={() => setShowPlayers(false)}
-                  className="flex size-9 items-center justify-center border border-border text-muted-foreground"
+                  aria-label="Close player list"
+                  className="touch-target flex items-center justify-center border border-border text-muted-foreground"
                 >
                   <X className="size-4" />
                 </button>
@@ -678,7 +739,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
           </div>
         )}
 
-        <main className="flex min-w-0 min-h-0 flex-1 flex-col bg-background/45">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-background/45">
           {expired && (
             <div className="border-b border-destructive/30 bg-destructive/[0.06] px-4 py-2.5 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-destructive">
               Lobby expired · Chat is now read-only
@@ -741,9 +802,9 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                             </span>
                           </div>
 
-                          <p className="mt-1.5 break-words text-[0.92rem] leading-6 text-foreground/92 sm:text-[0.95rem]">{m.body}</p>
+                          <p className="mt-1.5 whitespace-pre-wrap break-words text-[0.92rem] leading-6 text-foreground/92 sm:text-[0.95rem]">{m.body}</p>
 
-                          <div className="mt-2 flex min-h-7 flex-wrap items-center gap-1.5">
+                          <div className="mt-2 flex min-h-9 flex-wrap items-center gap-1.5 sm:min-h-7">
                             {REACTIONS.map((item) => {
                               const count = messageReactions.filter((r) => r.emoji === item.value).length;
                               const active = messageReactions.some(
@@ -757,7 +818,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                                   onClick={() => handleReaction(m.id, item.value)}
                                   aria-label={`${item.title} reaction${count ? `, ${count}` : ""}`}
                                   title={item.title}
-                                  className={`border px-2 py-1 font-mono text-[0.62rem] transition-all disabled:opacity-40 ${
+                                  className={`min-h-9 min-w-9 border px-2 py-1.5 font-mono text-[0.62rem] transition-all disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:py-1 ${
                                     active
                                       ? "border-primary bg-primary/[0.09] text-primary"
                                       : count
@@ -787,7 +848,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
                                     .then(() => toast.success("Reported. Thanks."))
                                     .catch(() => toast.error("Could not report that message."))
                                 }
-                                className="ml-auto flex items-center gap-1 font-mono text-[0.58rem] uppercase tracking-[0.11em] text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
+                                className="ml-auto flex min-h-9 min-w-9 items-center justify-center gap-1 font-mono text-[0.58rem] uppercase tracking-[0.11em] text-muted-foreground transition-opacity hover:text-destructive sm:min-h-0 sm:min-w-0 sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus:opacity-100"
                               >
                                 <Flag className="size-3" /> <span className="hidden sm:inline">Report</span>
                               </button>
@@ -803,33 +864,36 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
             </div>
           </div>
 
-          <form onSubmit={submit} className="relative border-t border-border/80 bg-background/92 px-3 py-3 sm:px-4 lg:px-6">
+          <form onSubmit={submit} className="mobile-safe-bottom relative border-t border-border/80 bg-background/92 px-3 pt-3 sm:px-4 lg:px-6">
             <div className="mx-auto w-full max-w-5xl">
               <div className="flex items-stretch gap-2">
                 <div className="relative min-w-0 flex-1">
-                  <input
+                  <textarea
                     value={draft}
+                    rows={2}
                     maxLength={500}
                     onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={handleComposerKeyDown}
                     disabled={expired}
                     placeholder={expired ? "Lobby expired" : "Message the lobby…"}
                     aria-label="Message"
-                    className="h-12 w-full border border-border bg-surface/40 px-3 pr-16 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50"
+                    className="min-h-12 max-h-28 w-full resize-none border border-border bg-surface/40 px-3 py-3 pr-14 text-sm leading-5 outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary focus:bg-surface/60 disabled:opacity-50"
                   />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[0.56rem] text-muted-foreground/65">
+                  <span className="pointer-events-none absolute bottom-2.5 right-3 font-mono text-[0.56rem] text-muted-foreground/65">
                     {draft.length}/500
                   </span>
                 </div>
                 <button
-                  disabled={expired}
-                  className="tactical-button flex h-12 items-center justify-center gap-2 bg-primary px-4 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-50 sm:px-5"
+                  disabled={expired || !draft.trim()}
+                  aria-label="Send message"
+                  className="tactical-button flex min-h-12 min-w-12 items-center justify-center gap-2 bg-primary px-3 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
                 >
-                  <Send className="size-3.5" /> <span className="hidden sm:inline">Send</span>
+                  <Send className="size-4" /> <span className="hidden sm:inline">Send</span>
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <SafetyNote />
-                <span className="hud-label hidden sm:inline">Room code {lobby.code}</span>
+                <span className="hud-label hidden sm:inline">Enter to send · Shift+Enter for line break</span>
               </div>
             </div>
           </form>
@@ -900,7 +964,7 @@ function PlayerList({
                 return (
                   <li
                     key={p.id}
-                    className={`group flex items-center gap-2.5 border border-border/55 bg-surface/25 px-2.5 py-2 ${self ? "border-primary/30 bg-primary/[0.025]" : ""}`}
+                    className={`group flex min-h-11 items-center gap-2.5 border border-border/55 bg-surface/25 px-2.5 py-1.5 ${self ? "border-primary/30 bg-primary/[0.025]" : ""}`}
                   >
                     <span className={`flex size-7 shrink-0 items-center justify-center border bg-background font-mono text-[0.58rem] font-semibold ${tc.border} ${tc.text}`}>
                       {initials(p.nickname)}
@@ -913,6 +977,7 @@ function PlayerList({
                     {!self && (
                       <button
                         aria-label={isMuted ? `Unmute ${p.nickname}` : `Mute ${p.nickname}`}
+                        title={isMuted ? `Unmute ${p.nickname}` : `Mute ${p.nickname}`}
                         onClick={() =>
                           setMuted((prev) =>
                             prev.includes(p.guest_id)
@@ -920,7 +985,7 @@ function PlayerList({
                               : [...prev, p.guest_id],
                           )
                         }
-                        className={`text-muted-foreground transition-colors hover:text-foreground ${isMuted ? "text-destructive" : "sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"}`}
+                        className={`touch-target flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground sm:min-h-0 sm:min-w-0 ${isMuted ? "text-destructive" : "sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"}`}
                       >
                         {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
                       </button>
