@@ -30,6 +30,16 @@ async function callRpc(
   );
 }
 
+function friendlyRpcError(message: string, fallback: string, safetyFallback?: string) {
+  if (/private\.moderation_reason|private\.moderate_text|private\.record_moderation_block/i.test(message)) {
+    return safetyFallback ?? "That action crosses the EZNOOBS safety line.";
+  }
+  if (/function .* does not exist|relation .* does not exist|schema cache|permission denied/i.test(message)) {
+    return fallback;
+  }
+  return message;
+}
+
 const createSchema = z.object({
   game: z.string().min(2).max(40),
   nickname: nickSchema,
@@ -56,7 +66,11 @@ export const createLobby = createServerFn({ method: "POST" })
       p_nickname: data.nickname,
       p_team: data.team,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(
+        friendlyRpcError(error.message, "Could not create lobby.", "That nickname crosses the EZNOOBS safety line."),
+      );
+    }
     const rows = result as { out_code: string }[] | null;
     if (!rows || rows.length === 0) throw new Error("Could not create lobby.");
     return { code: rows[0]!.out_code };
@@ -74,7 +88,11 @@ export const joinLobby = createServerFn({ method: "POST" })
       p_nickname: data.nickname,
       p_team: data.team,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(
+        friendlyRpcError(error.message, "Could not join lobby.", "That nickname crosses the EZNOOBS safety line."),
+      );
+    }
     const rows = result as
       | {
           out_ok: boolean;
@@ -109,7 +127,15 @@ export const sendMessage = createServerFn({ method: "POST" })
       p_guest_secret: guest.secret,
       p_body: data.body,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(
+        friendlyRpcError(
+          error.message,
+          "Message failed. Try again.",
+          "Message blocked — keep the trash talk about the game.",
+        ),
+      );
+    }
     const rows = result as { out_ok: boolean; out_reason: string | null }[] | null;
     const r = rows?.[0];
     if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Message failed.");
@@ -128,7 +154,7 @@ export const getLobby = createServerFn({ method: "GET" })
       p_guest_id: guest?.publicId ?? null,
       p_guest_secret: guest?.secret ?? null,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Could not load lobby."));
 
     const rows = result as
       | {
@@ -176,7 +202,7 @@ export const reportMessage = createServerFn({ method: "POST" })
       p_message_id: data.messageId,
       p_reason: data.reason,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Could not report that message."));
     const rows = result as { out_ok: boolean; out_reason: string | null }[] | null;
     const r = rows?.[0];
     if (!r || !r.out_ok) throw new Error(r?.out_reason ?? "Could not report that message.");
@@ -193,7 +219,7 @@ export const touchPresence = createServerFn({ method: "POST" })
       p_guest_id: guest.publicId,
       p_guest_secret: guest.secret,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Could not refresh presence."));
     const rows = result as { out_ok: boolean }[] | null;
     if (!rows?.[0]?.out_ok) throw new Error("Could not refresh presence.");
     return { ok: true };
@@ -220,7 +246,7 @@ export const toggleReaction = createServerFn({ method: "POST" })
       p_message_id: data.messageId,
       p_emoji: data.emoji,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Reaction failed."));
     const rows = result as
       | { out_ok: boolean; out_reason: string | null; out_active: boolean }[]
       | null;
@@ -239,7 +265,7 @@ export const toggleRematchVote = createServerFn({ method: "POST" })
       p_guest_id: guest.publicId,
       p_guest_secret: guest.secret,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Rematch vote failed."));
     const rows = result as
       | { out_ok: boolean; out_reason: string | null; out_active: boolean; out_count: number }[]
       | null;
@@ -258,7 +284,7 @@ export const leaveLobby = createServerFn({ method: "POST" })
       p_guest_id: guest.publicId,
       p_guest_secret: guest.secret,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyRpcError(error.message, "Could not leave lobby."));
     const rows = result as { out_ok: boolean }[] | null;
     if (!rows?.[0]?.out_ok) throw new Error("Could not leave lobby.");
     return { ok: true };
