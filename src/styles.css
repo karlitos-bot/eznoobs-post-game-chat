@@ -267,6 +267,18 @@
   70% { transform: translateY(1px) scale(0.98); }
 }
 
+@keyframes reaction-burst {
+  0% { opacity: 0; transform: translateY(8px) scale(0.75) rotate(-5deg); }
+  28% { opacity: 1; transform: translateY(-2px) scale(1.14) rotate(2deg); }
+  70% { opacity: 0.95; transform: translateY(-9px) scale(1); }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.92); }
+}
+
+@keyframes runback-ready {
+  0%, 100% { box-shadow: inset 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
+  50% { box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 7%, transparent); }
+}
+
 button[aria-label*=" reaction"] {
   transform-origin: center;
   will-change: transform;
@@ -280,16 +292,28 @@ button[aria-label*=" reaction"]:active {
   animation: reaction-tap 260ms cubic-bezier(.2,.85,.35,1);
 }
 
-div[title="Salt level: SPICY"] > div > span {
+.reaction-burst {
+  animation: reaction-burst 650ms cubic-bezier(.2,.8,.3,1) both;
+  text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 32%, transparent);
+}
+
+.runback-ready {
+  animation: runback-ready 1.2s ease-in-out infinite;
+}
+
+div[title="Salt level: SPICY"] > div > span,
+div[data-salt-level="SPICY"] > div > span {
   animation: salt-hot 980ms ease-in-out infinite;
   transform-origin: center bottom;
 }
 
-div[title="Salt level: NUCLEAR"] {
+div[title="Salt level: NUCLEAR"],
+div[data-salt-level="NUCLEAR"] {
   animation: salt-nuclear 620ms ease-in-out infinite;
 }
 
-div[title="Salt level: NUCLEAR"] > div > span {
+div[title="Salt level: NUCLEAR"] > div > span,
+div[data-salt-level="NUCLEAR"] > div > span {
   animation: salt-hot 520ms ease-in-out infinite;
   transform-origin: center bottom;
 }
