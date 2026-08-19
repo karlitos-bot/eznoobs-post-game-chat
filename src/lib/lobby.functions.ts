@@ -122,28 +122,37 @@ export const getLobby = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lobby } = await supabaseAdmin
-      .from("lobbies")
-      .select("id, code, game, created_at, expires_at, last_activity_at")
-      .eq("code", data.code)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
-    if (!lobby) return null;
+    const guest = data.guestId ? splitGuestCredential(data.guestId) : null;
+    const { data: result, error } = await callRpc(supabaseAdmin, "get_lobby_entry", {
+      p_code: data.code,
+      p_guest_id: guest?.publicId ?? null,
+      p_guest_secret: guest?.secret ?? null,
+    });
+    if (error) throw new Error(error.message);
 
-    let joined = false;
-    if (data.guestId) {
-      const guest = splitGuestCredential(data.guestId);
-      const { data: result, error } = await callRpc(supabaseAdmin, "check_participant", {
-        p_code: data.code,
-        p_guest_id: guest.publicId,
-        p_guest_secret: guest.secret,
-      });
-      if (!error) {
-        const rows = result as { out_joined: boolean }[] | null;
-        joined = Boolean(rows?.[0]?.out_joined);
-      }
-    }
-    return { ...lobby, joined };
+    const rows = result as
+      | {
+          out_id: string;
+          out_code: string;
+          out_game: string;
+          out_created_at: string;
+          out_expires_at: string;
+          out_last_activity_at: string;
+          out_joined: boolean;
+        }[]
+      | null;
+    const r = rows?.[0];
+    if (!r) return null;
+
+    return {
+      id: r.out_id,
+      code: r.out_code,
+      game: r.out_game,
+      created_at: r.out_created_at,
+      expires_at: r.out_expires_at,
+      last_activity_at: r.out_last_activity_at,
+      joined: Boolean(r.out_joined),
+    };
   });
 
 export const reportMessage = createServerFn({ method: "POST" })
