@@ -8,7 +8,7 @@ export function Logo({ className = "" }: { className?: string }) {
       className={`inline-flex items-center leading-none ${className}`}
     >
       <img
-        src="/eznoobs-wordmark.svg"
+        src="/eznoobs-wordmark.webp"
         alt="EZNOOBS"
         className="h-[1.35em] w-auto max-w-[10rem] select-none object-contain"
         draggable={false}
