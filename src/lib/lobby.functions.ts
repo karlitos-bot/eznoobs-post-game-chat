@@ -38,7 +38,7 @@ export const createLobby = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const rows = result as { out_code: string }[] | null;
     if (!rows || rows.length === 0) throw new Error("Could not create lobby.");
-    return { code: rows[0].out_code };
+    return { code: rows[0]!.out_code };
   });
 
 export const joinLobby = createServerFn({ method: "POST" })
