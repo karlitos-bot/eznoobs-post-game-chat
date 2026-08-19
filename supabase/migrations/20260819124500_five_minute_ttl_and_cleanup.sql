@@ -46,13 +46,22 @@ ALTER TABLE public.reports
 
 UPDATE public.reports r
 SET
-  lobby_code = COALESCE(r.lobby_code, l.code),
-  message_body = COALESCE(r.message_body, m.body),
-  message_nickname = COALESCE(r.message_nickname, m.nickname),
-  message_team = COALESCE(r.message_team, m.team)
-FROM public.lobbies l
-LEFT JOIN public.messages m ON m.id = r.message_id
-WHERE l.id = r.lobby_id;
+  lobby_code = COALESCE(
+    r.lobby_code,
+    (SELECT l.code FROM public.lobbies l WHERE l.id = r.lobby_id)
+  ),
+  message_body = COALESCE(
+    r.message_body,
+    (SELECT m.body FROM public.messages m WHERE m.id = r.message_id)
+  ),
+  message_nickname = COALESCE(
+    r.message_nickname,
+    (SELECT m.nickname FROM public.messages m WHERE m.id = r.message_id)
+  ),
+  message_team = COALESCE(
+    r.message_team,
+    (SELECT m.team FROM public.messages m WHERE m.id = r.message_id)
+  );
 
 ALTER TABLE public.reports DROP CONSTRAINT IF EXISTS reports_lobby_id_fkey;
 ALTER TABLE public.reports DROP CONSTRAINT IF EXISTS reports_message_id_fkey;
