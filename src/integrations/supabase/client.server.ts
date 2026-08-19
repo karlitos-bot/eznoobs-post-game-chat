@@ -4,6 +4,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+const PUBLIC_SUPABASE_URL = 'https://nzrdwfdaqksteovncmxi.supabase.co';
+const PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_C4hEH3SIPWIfcr6texO3sg_9ZlWhJED';
+
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
 }
@@ -28,19 +31,11 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env['SUPABASE_URL'];
+  const SUPABASE_URL = process.env['SUPABASE_URL'] || PUBLIC_SUPABASE_URL;
   const SUPABASE_KEY =
-    process.env['SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_ANON_KEY'];
-
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
-  }
+    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['SUPABASE_ANON_KEY'] ||
+    PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     global: {
@@ -58,7 +53,6 @@ let _supabaseAdmin: ReturnType<typeof createSupabaseAdminClient> | undefined;
 
 // Server-side Supabase client. Uses the publishable key with SECURITY DEFINER
 // RPCs for writes. Direct table writes from this client remain subject to RLS.
-// Load inside server handlers: const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 export const supabaseAdmin = new Proxy({} as ReturnType<typeof createSupabaseAdminClient>, {
   get(_, prop, receiver) {
     if (!_supabaseAdmin) _supabaseAdmin = createSupabaseAdminClient();
