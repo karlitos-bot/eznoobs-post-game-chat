@@ -1,0 +1,214 @@
+.ez-team-energy {
+  mix-blend-mode: screen;
+}
+
+.ez-team-energy-blue {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--blue-team) 92%, transparent), transparent 82%);
+  filter: blur(18px);
+  transition: width 320ms ease, opacity 320ms ease;
+}
+
+.ez-team-energy-red {
+  background: linear-gradient(270deg, color-mix(in oklab, var(--red-team) 92%, transparent), transparent 82%);
+  filter: blur(18px);
+  transition: width 320ms ease, opacity 320ms ease;
+}
+
+.message-card.ez-combo-message {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.message-card.ez-combo-message::after {
+  content: attr(data-combo-label);
+  position: absolute;
+  top: 0.52rem;
+  right: 5.5rem;
+  z-index: 3;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid color-mix(in oklab, var(--primary) 42%, var(--border));
+  background: color-mix(in oklab, var(--background) 88%, var(--primary) 12%);
+  padding: 0.28rem 0.48rem;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  line-height: 1;
+  color: var(--primary);
+  box-shadow: 0 0 22px color-mix(in oklab, var(--primary) 8%, transparent);
+}
+
+.message-card.ez-combo-salt::after {
+  color: var(--primary);
+}
+
+.message-card.ez-combo-clown::after {
+  color: oklch(0.82 0.17 76);
+  border-color: color-mix(in oklab, oklch(0.82 0.17 76) 46%, var(--border));
+}
+
+.message-card.ez-combo-skull::after {
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--foreground) 34%, var(--border));
+}
+
+.message-card.ez-combo-gg::after {
+  color: var(--blue-team);
+  border-color: color-mix(in oklab, var(--blue-team) 48%, var(--border));
+}
+
+.message-card.ez-combo-mega {
+  box-shadow:
+    inset 0 0 38px color-mix(in oklab, var(--primary) 7%, transparent),
+    0 0 30px color-mix(in oklab, var(--primary) 5%, transparent) !important;
+}
+
+.message-card.ez-combo-pop::after {
+  animation: ez-combo-label-pop 720ms cubic-bezier(.18,.86,.3,1) both;
+}
+
+.message-card.ez-combo-pop {
+  animation: ez-combo-card-hit 520ms cubic-bezier(.18,.86,.3,1);
+}
+
+.ez-runback-showtime {
+  background:
+    radial-gradient(circle at 50% 48%, color-mix(in oklab, var(--primary) 11%, transparent), transparent 28%),
+    linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 3%, transparent), transparent);
+  animation: ez-runback-stage 1.85s ease both;
+  backdrop-filter: blur(1px);
+}
+
+.ez-runback-showtime-card {
+  min-width: min(88vw, 26rem);
+  border: 1px solid color-mix(in oklab, var(--primary) 62%, var(--border));
+  background: color-mix(in oklab, var(--background) 92%, var(--primary) 8%);
+  padding: 1.25rem 1.6rem 1.35rem;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent),
+    0 28px 90px color-mix(in oklab, black 44%, transparent),
+    0 0 70px color-mix(in oklab, var(--primary) 13%, transparent);
+  animation: ez-runback-card 1.85s cubic-bezier(.18,.86,.3,1) both;
+}
+
+.ez-runback-swords {
+  display: inline-flex;
+  color: var(--primary);
+  animation: ez-runback-swords 720ms cubic-bezier(.18,.86,.3,1) both;
+}
+
+.ez-runback-kicker,
+.ez-runback-sub {
+  margin: 0;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.ez-runback-kicker {
+  margin-top: 0.65rem;
+  font-size: 0.56rem;
+  color: var(--muted-foreground);
+}
+
+.ez-runback-title {
+  margin: 0.24rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 5vw, 3.8rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: 0.025em;
+  color: var(--primary);
+  text-transform: uppercase;
+  text-shadow: 0 0 30px color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+.ez-runback-sub {
+  margin-top: 0.55rem;
+  min-height: 0.75rem;
+  font-size: 0.58rem;
+  color: var(--foreground);
+}
+
+.live-activity-strip.ez-activity-idle {
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.live-activity-strip > span {
+  display: none !important;
+}
+
+.ez-composer-clean span.hud-label {
+  display: none !important;
+}
+
+@keyframes ez-combo-label-pop {
+  0% { opacity: 0; transform: translateY(8px) scale(0.76) rotate(-2deg); }
+  35% { opacity: 1; transform: translateY(-2px) scale(1.12) rotate(1deg); }
+  70% { transform: translateY(0) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes ez-combo-card-hit {
+  0%, 100% { transform: translateX(0) scale(1); }
+  28% { transform: translateX(2px) scale(1.004); }
+  58% { transform: translateX(-1px) scale(0.999); }
+}
+
+@keyframes ez-runback-stage {
+  0% { opacity: 0; }
+  12%, 76% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes ez-runback-card {
+  0% { opacity: 0; transform: translateY(20px) scale(0.84); }
+  18% { opacity: 1; transform: translateY(-3px) scale(1.04); }
+  30%, 72% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.96); }
+}
+
+@keyframes ez-runback-swords {
+  0% { opacity: 0; transform: scale(0.45) rotate(-18deg); }
+  48% { opacity: 1; transform: scale(1.18) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@media (max-width: 767px) {
+  .message-card.ez-combo-message::after {
+    top: auto;
+    right: 0.6rem;
+    bottom: 0.55rem;
+    max-width: 48%;
+    font-size: 0.48rem;
+  }
+
+  .ez-runback-showtime-card {
+    min-width: min(90vw, 22rem);
+    padding: 1rem 1.1rem 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-card.ez-combo-pop,
+  .message-card.ez-combo-pop::after,
+  .ez-runback-showtime,
+  .ez-runback-showtime-card,
+  .ez-runback-swords {
+    animation: none !important;
+  }
+
+  .ez-team-energy-blue,
+  .ez-team-energy-red {
+    transition: none !important;
+  }
+}
