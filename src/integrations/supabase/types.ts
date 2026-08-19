@@ -117,6 +117,77 @@ export type Database = {
           },
         ]
       }
+      reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          guest_id: string
+          id: string
+          lobby_id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          guest_id: string
+          id?: string
+          lobby_id: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          guest_id?: string
+          id?: string
+          lobby_id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rematch_votes: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          lobby_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          lobby_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          lobby_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rematch_votes_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string
@@ -178,6 +249,7 @@ export type Database = {
           out_code: string
         }[]
       }
+      generate_room_code: { Args: never; Returns: string }
       join_lobby: {
         Args: {
           p_code: string
@@ -186,21 +258,16 @@ export type Database = {
           p_team: string
         }
         Returns: {
+          out_code: string
+          out_game: string
           out_ok: boolean
-          out_reason: string | null
-          out_code: string | null
-          out_game: string | null
+          out_reason: string
         }[]
       }
-      send_message: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-          p_body: string
-        }
+      leave_lobby: {
+        Args: { p_code: string; p_guest_id: string }
         Returns: {
           out_ok: boolean
-          out_reason: string | null
         }[]
       }
       report_message: {
@@ -212,21 +279,43 @@ export type Database = {
         }
         Returns: {
           out_ok: boolean
-          out_reason: string | null
+          out_reason: string
+        }[]
+      }
+      send_message: {
+        Args: { p_body: string; p_code: string; p_guest_id: string }
+        Returns: {
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
+      toggle_reaction: {
+        Args: {
+          p_code: string
+          p_emoji: string
+          p_guest_id: string
+          p_message_id: string
+        }
+        Returns: {
+          out_active: boolean
+          out_ok: boolean
+          out_reason: string
+        }[]
+      }
+      toggle_rematch_vote: {
+        Args: { p_code: string; p_guest_id: string }
+        Returns: {
+          out_active: boolean
+          out_count: number
+          out_ok: boolean
+          out_reason: string
         }[]
       }
       touch_presence: {
-        Args: {
-          p_code: string
-          p_guest_id: string
-        }
+        Args: { p_code: string; p_guest_id: string }
         Returns: {
           out_ok: boolean
         }[]
-      }
-      generate_room_code: {
-        Args: Record<string, never>
-        Returns: string
       }
     }
     Enums: {
