@@ -264,7 +264,7 @@ export function LobbyPersonalityLayer() {
 
     void refresh();
     const channel = supabase
-      .channel(`personality:${code}`)
+      .channel(`room:${code}`)
       .on("broadcast", { event: "db-change" }, () => {
         if (refreshTimer) clearTimeout(refreshTimer);
         refreshTimer = setTimeout(() => void refresh(), 150);
