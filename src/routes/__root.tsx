@@ -91,10 +91,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Temporary post-game lobbies for GGs, trash talk and unfinished business.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/eznoobs-logo.svg" },
+      { property: "og:image", content: "/eznoobs-logo.webp" },
       { property: "og:image:alt", content: "EZNOOBS gaming mascot and wordmark" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "/eznoobs-logo.svg" },
+      { name: "twitter:image", content: "/eznoobs-logo.webp" },
     ],
     links: [
       {
@@ -107,7 +107,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap",
       },
-      { rel: "icon", href: "/eznoobs-mark.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/eznoobs-mark.png", type: "image/png" },
       { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
