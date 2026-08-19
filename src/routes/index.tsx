@@ -43,6 +43,8 @@ export const Route = createFileRoute("/")({
         content:
           "Temporary post-game lobbies for GGs, trash talk, rematches and unfinished business.",
       },
+      { property: "og:image", content: "/eznoobs-logo.svg" },
+      { name: "twitter:image", content: "/eznoobs-logo.svg" },
     ],
   }),
   component: Home,
@@ -127,12 +129,32 @@ function Home() {
         <div className="grid items-stretch gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:gap-12">
           <section className="flex flex-col justify-between py-2 lg:py-6">
             <div className="rise-in">
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="hud-label flex items-center gap-2 text-primary">
-                  <Radio className="size-3.5" /> Channel open
-                </span>
-                <span className="h-3 w-px bg-border" />
-                <span className="hud-label">No signup · No friend request · No waiting</span>
+              <div className="mb-7 flex items-center gap-4 sm:gap-5">
+                <div className="relative size-24 shrink-0 overflow-hidden border border-primary/25 bg-black/80 shadow-[0_0_35px_rgba(180,255,0,0.06)] sm:size-28">
+                  <img
+                    src="/eznoobs-logo.svg"
+                    alt="EZNOOBS gaming mascot logo"
+                    className="h-full w-full select-none object-cover"
+                    draggable={false}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="hud-label flex items-center gap-2 text-primary">
+                      <Radio className="size-3.5" /> Channel open
+                    </span>
+                    <span className="hidden h-3 w-px bg-border sm:block" />
+                    <span className="hud-label hidden sm:inline">
+                      No signup · No friend request · No waiting
+                    </span>
+                  </div>
+                  <p className="display mt-2 text-xl tracking-[0.03em] text-foreground sm:text-2xl">
+                    GGs. Salt. Runbacks.
+                  </p>
+                  <p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground sm:text-sm">
+                    One temporary lobby for everything the scoreboard didn&apos;t settle.
+                  </p>
+                </div>
               </div>
 
               <h1 className="max-w-4xl text-[clamp(4rem,10vw,8.8rem)] leading-[0.78] tracking-[-0.025em]">
