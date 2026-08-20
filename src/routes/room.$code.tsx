@@ -556,7 +556,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     let channel: RealtimeChannel | null = null;
     if (realtimeToken) {
       const nextChannel = supabase
-        .channel(lobbyChannelName(lobby.code, realtimeToken), { config: { private: true } })
+        .channel(lobbyChannelName(lobby.code, realtimeToken))
         .on("broadcast", { event: "db-change" }, scheduleRefresh)
         .on("broadcast", { event: "typing" }, handleTyping)
         .subscribe((status, err) => {

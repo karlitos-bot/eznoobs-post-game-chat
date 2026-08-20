@@ -268,7 +268,7 @@ export function LobbyPersonalityLayer() {
     // Token-scoped private topic only; polling covers the window before it arrives.
     const channel = realtimeToken
       ? supabase
-          .channel(lobbyChannelName(code, realtimeToken), { config: { private: true } })
+          .channel(lobbyChannelName(code, realtimeToken))
           .on("broadcast", { event: "db-change" }, () => {
             if (refreshTimer) clearTimeout(refreshTimer);
             refreshTimer = setTimeout(() => void refresh(), 150);
