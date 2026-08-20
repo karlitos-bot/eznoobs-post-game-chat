@@ -47,6 +47,7 @@ const lookup = read('supabase/migrations/20260820063000_rate_limit_lobby_lookup.
 const realtime = read('supabase/migrations/20260820045843_secure_realtime_channels.sql');
 const usernames = read('supabase/migrations/20260820074500_unique_active_usernames.sql');
 const legacyRevoke = read('supabase/migrations/20260820102000_revoke_legacy_participant_check.sql');
+const authenticatedReadLimits = read('supabase/migrations/20260820111000_rate_limit_authenticated_room_reads.sql');
 const cleanup = read('supabase/migrations/20260819124500_five_minute_ttl_and_cleanup.sql');
 const fixedLifetime = read('supabase/migrations/20260819143000_fixed_lobby_lifetime_and_capacity.sql');
 
@@ -130,6 +131,21 @@ for (const [name, action] of [
     sqlFunction(moderation, name).includes(`consume_rate_limit(p_guest_id,'${action}'`),
     `${name} has server-side abuse throttling`,
   );
+}
+
+for (const [name, action, limits] of [
+  ['get_lobby_snapshot', 'snapshot', "10, 40, 60, 180"],
+  ['touch_presence', 'presence', "60, 10, 3600, 60"],
+  ['get_lobby_realtime_token', 'realtime_token', "10, 10, 600, 30"],
+]) {
+  const body = sqlFunction(authenticatedReadLimits, name);
+  const credentialIndex = body.indexOf('private.guest_secret_matches');
+  const limiterNeedle = `private.consume_rate_limit(p_guest_id, '${action}', ${limits})`;
+  const limiterIndex = body.indexOf(limiterNeedle);
+  check(body.length > 0, `${name} hardened RPC definition is present`);
+  check(credentialIndex >= 0, `${name} validates the participant guest secret`);
+  check(limiterIndex >= 0, `${name} has server-side abuse throttling`);
+  check(credentialIndex >= 0 && limiterIndex > credentialIndex, `${name} throttles only after credential validation`);
 }
 
 check(/REVOKE EXECUTE ON FUNCTION public\.check_participant\(text, text, text\)[\s\S]*PUBLIC, anon, authenticated/.test(legacyRevoke), 'Obsolete check_participant RPC is no longer anonymously executable');
