@@ -25,6 +25,7 @@ import { Logo } from "@/components/eznoobs/Logo";
 import { SafetyNote } from "@/components/eznoobs/SafetyNote";
 import { supabase } from "@/integrations/supabase/client";
 import { getLobbySnapshot } from "@/lib/lobby-state.functions";
+import { lobbyChannelName, useLobbyRealtimeToken } from "@/lib/use-realtime-token";
 import {
   getLobby,
   joinLobby,
