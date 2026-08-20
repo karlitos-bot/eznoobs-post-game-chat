@@ -22,6 +22,7 @@ export type Database = {
           game: string
           id: string
           last_activity_at: string
+          max_players: number
         }
         Insert: {
           code: string
@@ -30,6 +31,7 @@ export type Database = {
           game: string
           id?: string
           last_activity_at?: string
+          max_players?: number
         }
         Update: {
           code?: string
@@ -38,6 +40,7 @@ export type Database = {
           game?: string
           id?: string
           last_activity_at?: string
+          max_players?: number
         }
         Relationships: []
       }
@@ -192,8 +195,12 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          lobby_id: string
+          lobby_code: string | null
+          lobby_id: string | null
+          message_body: string | null
           message_id: string | null
+          message_nickname: string | null
+          message_team: string | null
           reason: string
           reported_guest_id: string
           reporter_guest_id: string
@@ -201,8 +208,12 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          lobby_id: string
+          lobby_code?: string | null
+          lobby_id?: string | null
+          message_body?: string | null
           message_id?: string | null
+          message_nickname?: string | null
+          message_team?: string | null
           reason: string
           reported_guest_id: string
           reporter_guest_id: string
@@ -210,8 +221,12 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          lobby_id?: string
+          lobby_code?: string | null
+          lobby_id?: string | null
+          message_body?: string | null
           message_id?: string | null
+          message_nickname?: string | null
+          message_team?: string | null
           reason?: string
           reported_guest_id?: string
           reporter_guest_id?: string
@@ -238,10 +253,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_participant: {
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
+        Returns: {
+          out_joined: boolean
+        }[]
+      }
       create_lobby: {
         Args: {
           p_game: string
           p_guest_id: string
+          p_guest_secret: string
           p_nickname: string
           p_team: string
         }
@@ -250,10 +272,35 @@ export type Database = {
         }[]
       }
       generate_room_code: { Args: never; Returns: string }
+      get_lobby_entry: {
+        Args: { p_code: string; p_guest_id?: string; p_guest_secret?: string }
+        Returns: {
+          out_code: string
+          out_created_at: string
+          out_expires_at: string
+          out_game: string
+          out_id: string
+          out_joined: boolean
+          out_last_activity_at: string
+        }[]
+      }
+      get_lobby_realtime_token: {
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
+        Returns: {
+          out_token: string
+        }[]
+      }
+      get_lobby_snapshot: {
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
+        Returns: {
+          out_snapshot: Json
+        }[]
+      }
       join_lobby: {
         Args: {
           p_code: string
           p_guest_id: string
+          p_guest_secret: string
           p_nickname: string
           p_team: string
         }
@@ -265,7 +312,7 @@ export type Database = {
         }[]
       }
       leave_lobby: {
-        Args: { p_code: string; p_guest_id: string }
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
         Returns: {
           out_ok: boolean
         }[]
@@ -274,6 +321,7 @@ export type Database = {
         Args: {
           p_code: string
           p_guest_id: string
+          p_guest_secret: string
           p_message_id: string
           p_reason: string
         }
@@ -283,7 +331,12 @@ export type Database = {
         }[]
       }
       send_message: {
-        Args: { p_body: string; p_code: string; p_guest_id: string }
+        Args: {
+          p_body: string
+          p_code: string
+          p_guest_id: string
+          p_guest_secret: string
+        }
         Returns: {
           out_ok: boolean
           out_reason: string
@@ -294,6 +347,7 @@ export type Database = {
           p_code: string
           p_emoji: string
           p_guest_id: string
+          p_guest_secret: string
           p_message_id: string
         }
         Returns: {
@@ -303,7 +357,7 @@ export type Database = {
         }[]
       }
       toggle_rematch_vote: {
-        Args: { p_code: string; p_guest_id: string }
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
         Returns: {
           out_active: boolean
           out_count: number
@@ -312,7 +366,7 @@ export type Database = {
         }[]
       }
       touch_presence: {
-        Args: { p_code: string; p_guest_id: string }
+        Args: { p_code: string; p_guest_id: string; p_guest_secret: string }
         Returns: {
           out_ok: boolean
         }[]
