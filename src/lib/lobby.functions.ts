@@ -9,7 +9,10 @@ const nickSchema = z
   .trim()
   .min(2)
   .max(20)
-  .regex(/^[^\u0000-\u001F]+$/);
+  // Reject ASCII controls plus invisible/bidirectional formatting characters commonly
+  // used to make two different usernames render as if they were the same identity.
+  // ZWJ/ZWNJ are intentionally not blocked because some writing systems require them.
+  .regex(/^[^\u0000-\u001F\u007F\u200B\u200E\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]+$/);
 const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
 const guestSchema = z.string().regex(new RegExp(`^${uuid}\\.${uuid}$`, "i"));
 
