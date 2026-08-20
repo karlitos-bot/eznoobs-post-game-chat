@@ -48,6 +48,7 @@ const realtime = read('supabase/migrations/20260820045843_secure_realtime_channe
 const usernames = read('supabase/migrations/20260820074500_unique_active_usernames.sql');
 const legacyRevoke = read('supabase/migrations/20260820102000_revoke_legacy_participant_check.sql');
 const authenticatedReadLimits = read('supabase/migrations/20260820111000_rate_limit_authenticated_room_reads.sql');
+const usernameSafety = read('supabase/migrations/20260820113000_reject_invisible_username_spoofing.sql');
 const cleanup = read('supabase/migrations/20260819124500_five_minute_ttl_and_cleanup.sql');
 const fixedLifetime = read('supabase/migrations/20260819143000_fixed_lobby_lifetime_and_capacity.sql');
 
@@ -165,6 +166,9 @@ check(/REVOKE EXECUTE ON FUNCTION public\.check_participant\(text, text, text\)[
 
 check(/lower\(btrim\(p\.nickname\)\)=lower\(v_nickname\)/.test(usernames), 'Active usernames are unique case-insensitively inside a lobby');
 check(/pg_advisory_xact_lock/.test(usernames), 'Username claims are serialized against simultaneous joins');
+check(lobbyFunctions.includes('\\u200B') && lobbyFunctions.includes('\\u202A-\\u202E') && lobbyFunctions.includes('\\u2066-\\u2069'), 'Server rejects invisible/bidirectional username spoofing characters');
+check(usernameSafety.includes('participants_username_safe_display'), 'Database enforces safe-display usernames for participant writes');
+check(usernameSafety.includes('position(chr(8203) IN nickname) = 0') && usernameSafety.includes('position(chr(8238) IN nickname) = 0') && usernameSafety.includes('position(chr(65279) IN nickname) = 0'), 'Database blocks zero-width and bidi override username tricks');
 
 check(/body:\s*z\.string\(\)\.trim\(\)\.min\(1\)\.max\(500\)/.test(lobbyFunctions), 'Message input is capped at 500 characters before RPC execution');
 check(/max\(20\)/.test(lobbyFunctions), 'Username input is capped at 20 characters before RPC execution');
