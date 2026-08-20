@@ -550,28 +550,36 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
     window.addEventListener("online", handleOnline);
     void refreshState();
 
-    const channel = supabase
-      .channel(`room:${lobby.code}`)
-      .on("broadcast", { event: "db-change" }, scheduleRefresh)
-      .on("broadcast", { event: "typing" }, handleTyping)
-      .subscribe((status, err) => {
-        if (!alive) return;
-        if (status === "SUBSCRIBED") {
-          channelSubscribed = true;
-          roomChannelRef.current = channel;
-          setConnectionState("connected");
-          void refreshState();
-          return;
-        }
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          channelSubscribed = false;
-          if (roomChannelRef.current === channel) roomChannelRef.current = null;
-          setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
-          if (err) console.warn("Realtime channel status", status, err);
-        }
-      });
-
-    roomChannelRef.current = channel;
+    // Only ever subscribe to the private, token-scoped topic. Without a token the
+    // secure snapshot fallback keeps the room usable and we stay "reconnecting".
+    let channel: RealtimeChannel | null = null;
+    if (realtimeToken) {
+      const nextChannel = supabase
+        .channel(lobbyChannelName(lobby.code, realtimeToken), { config: { private: true } })
+        .on("broadcast", { event: "db-change" }, scheduleRefresh)
+        .on("broadcast", { event: "typing" }, handleTyping)
+        .subscribe((status, err) => {
+          if (!alive) return;
+          if (status === "SUBSCRIBED") {
+            channelSubscribed = true;
+            roomChannelRef.current = nextChannel;
+            setConnectionState("connected");
+            void refreshState();
+            return;
+          }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            channelSubscribed = false;
+            if (roomChannelRef.current === nextChannel) roomChannelRef.current = null;
+            setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
+            if (err) console.warn("Realtime channel unavailable", status);
+          }
+        });
+      channel = nextChannel;
+      roomChannelRef.current = nextChannel;
+    } else {
+      roomChannelRef.current = null;
+      setConnectionState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "reconnecting");
+    }
     const fallbackRefresh = setInterval(() => void refreshState(), 10_000);
     const typingSweep = setInterval(() => {
       const cutoff = Date.now();
@@ -592,10 +600,12 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       clearInterval(typingSweep);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
-      if (roomChannelRef.current === channel) roomChannelRef.current = null;
-      void supabase.removeChannel(channel);
+      if (channel) {
+        if (roomChannelRef.current === channel) roomChannelRef.current = null;
+        void supabase.removeChannel(channel);
+      }
     };
-  }, [fetchSnapshot, guestId, guestPublicId, lobby.code]);
+  }, [fetchSnapshot, guestId, guestPublicId, lobby.code, realtimeToken]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
