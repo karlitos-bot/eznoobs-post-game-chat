@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getGuestId, getGuestPublicId, type Team } from "@/lib/eznoobs";
 import { getLobbySnapshot } from "@/lib/lobby-state.functions";
+import { lobbyChannelName, useLobbyRealtimeToken } from "@/lib/use-realtime-token";
 
 type Player = {
   guest_id: string;
@@ -99,6 +100,7 @@ export function LobbyPersonalityLayer() {
   const fetchSnapshot = useServerFn(getLobbySnapshot);
   const roomMatch = pathname.match(/^\/room\/([ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5})$/i);
   const code = roomMatch?.[1]?.toUpperCase() ?? null;
+  const realtimeToken = useLobbyRealtimeToken(code);
 
   const [guestCredential, setGuestCredential] = useState("");
   const [events, setEvents] = useState<ActivityEvent[]>([]);
@@ -263,22 +265,25 @@ export function LobbyPersonalityLayer() {
     }
 
     void refresh();
-    const channel = supabase
-      .channel(`room:${code}`)
-      .on("broadcast", { event: "db-change" }, () => {
-        if (refreshTimer) clearTimeout(refreshTimer);
-        refreshTimer = setTimeout(() => void refresh(), 150);
-      })
-      .subscribe();
+    // Token-scoped private topic only; polling covers the window before it arrives.
+    const channel = realtimeToken
+      ? supabase
+          .channel(lobbyChannelName(code, realtimeToken), { config: { private: true } })
+          .on("broadcast", { event: "db-change" }, () => {
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => void refresh(), 150);
+          })
+          .subscribe()
+      : null;
     const fallback = window.setInterval(() => void refresh(), 8000);
 
     return () => {
       alive = false;
       if (refreshTimer) clearTimeout(refreshTimer);
       clearInterval(fallback);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [code, fetchSnapshot, guestCredential, playCue, pushEvent]);
+  }, [code, fetchSnapshot, guestCredential, playCue, pushEvent, realtimeToken]);
 
   if (!code || !guestCredential) return null;
 
