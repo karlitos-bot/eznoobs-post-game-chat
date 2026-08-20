@@ -74,7 +74,7 @@ function Home() {
 
     const nick = nickname.trim();
     if (nick.length < 2) {
-      toast.error("Nickname needs at least 2 characters.");
+      toast.error("Username needs at least 2 characters.");
       return;
     }
 
@@ -258,7 +258,7 @@ function Home() {
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <label className="hud-label" htmlFor="nick">Nickname</label>
+                  <label className="hud-label" htmlFor="nick">In-game username</label>
                   <span className="font-mono text-[0.58rem] uppercase tracking-[0.13em] text-muted-foreground">2–20 chars</span>
                 </div>
                 <input
@@ -271,7 +271,7 @@ function Home() {
                   spellCheck={false}
                   enterKeyHint="done"
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="ghostpeek"
+                  placeholder="Your in-game username"
                   className="min-h-11 w-full border border-border bg-background/85 px-3 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary disabled:cursor-wait disabled:opacity-60"
                 />
               </div>
