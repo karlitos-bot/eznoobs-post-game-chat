@@ -37,6 +37,6 @@ export const getLobbySnapshot = createServerFn({ method: "POST" })
     });
 
     if (error) throw new Error(error.message);
-    const rows = result as { out_snapshot: Record<string, unknown> | null }[] | null;
-    return rows?.[0]?.out_snapshot ?? null;
+    const rows = result as { out_snapshot: unknown }[] | null;
+    return (rows?.[0]?.out_snapshot ?? null) as any;
   });
