@@ -37,6 +37,9 @@ const lobbyFunctions = read('src/lib/lobby.functions.ts');
 const lobbyStateFunctions = read('src/lib/lobby-state.functions.ts');
 const realtimeTokenFunctions = read('src/lib/realtime-token.functions.ts');
 const secureRealtimeLayer = read('src/components/eznoobs/SecureRealtimeLayer.tsx');
+const baseSchema = read('supabase/migrations/20260818105303_2c8cbfe8-37d8-4074-bb5e-c8c6fb0e1923.sql');
+const reactionSchema = read('supabase/migrations/20260819053424_9bfc3cb3-81d0-492b-91f8-c15a7bf63d80.sql');
+const guestHardening = read('supabase/migrations/20260819073500_guest_credential_hardening.sql');
 const privacy = read('supabase/migrations/20260819122500_lock_down_room_reads.sql');
 const credentialFunctions = read('supabase/migrations/20260819090500_move_guest_credentials_private.sql');
 const moderation = read('supabase/migrations/20260819161000_moderation_and_abuse_protection.sql');
@@ -77,6 +80,22 @@ for (const table of ['lobbies', 'messages', 'participants', 'reactions', 'rematc
   check(
     privacy.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM anon, authenticated;`),
     `Anonymous direct table privileges revoked for ${table}`,
+  );
+}
+
+for (const signature of [
+  'public.create_lobby(text, text, text, text)',
+  'public.join_lobby(text, text, text, text)',
+  'public.send_message(text, text, text)',
+  'public.report_message(text, text, uuid, text)',
+  'public.touch_presence(text, text)',
+  'public.toggle_reaction(text, text, uuid, text)',
+  'public.toggle_rematch_vote(text, text)',
+  'public.leave_lobby(text, text)',
+]) {
+  check(
+    guestHardening.includes(`DROP FUNCTION IF EXISTS ${signature};`),
+    `Legacy no-secret RPC removed: ${signature}`,
   );
 }
 
@@ -122,6 +141,15 @@ check(/body:\s*z\.string\(\)\.trim\(\)\.min\(1\)\.max\(500\)/.test(lobbyFunction
 check(/max\(20\)/.test(lobbyFunctions), 'Username input is capped at 20 characters before RPC execution');
 check(/reason:\s*z\.string\(\)\.trim\(\)\.min\(1\)\.max\(200\)/.test(lobbyFunctions), 'Report reason is capped at 200 characters before RPC execution');
 check(/guestId:\s*guestSchema/.test(lobbyStateFunctions), 'Lobby snapshot server function requires a full guest credential');
+
+check(/lobby_id uuid NOT NULL REFERENCES public\.lobbies\(id\) ON DELETE CASCADE/.test(baseSchema), 'Participants/messages are anchored to lobby cascade deletion');
+check((baseSchema.match(/REFERENCES public\.lobbies\(id\) ON DELETE CASCADE/g) ?? []).length >= 2, 'Both participants and messages cascade when a lobby is deleted');
+check((reactionSchema.match(/REFERENCES public\.lobbies\(id\) ON DELETE CASCADE/g) ?? []).length >= 2, 'Reactions and rematch votes cascade when a lobby is deleted');
+check(/REFERENCES public\.participants \(lobby_id, guest_id\)[\s\S]*ON DELETE CASCADE/.test(credentialFunctions), 'Private guest credentials cascade with participant deletion');
+check(/lobby_id uuid primary key references public\.lobbies\(id\) on delete cascade/i.test(realtime), 'Private realtime token cascades with lobby deletion');
+check(/reports_lobby_id_fkey[\s\S]*ON DELETE SET NULL/.test(cleanup), 'Reports detach safely from deleted lobbies');
+check(/reports_message_id_fkey[\s\S]*ON DELETE SET NULL/.test(cleanup), 'Reports detach safely from deleted messages');
+check(cleanup.includes('message_body text') && cleanup.includes('message_nickname text') && cleanup.includes('message_team text'), 'Reports preserve moderation evidence before temporary chat deletion');
 
 check(/cron\.schedule\([\s\S]*eznoobs-purge-expired-lobbies[\s\S]*\* \* \* \* \*/.test(cleanup), 'Expired lobby hard-delete cron is declared');
 check(/DELETE FROM public\.lobbies\s+WHERE expires_at <= now\(\)/.test(cleanup), 'Expired lobby cleanup hard-deletes lobby rows');
