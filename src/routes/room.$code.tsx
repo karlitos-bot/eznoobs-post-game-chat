@@ -406,6 +406,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const impactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentRef = useRef(0);
+  const realtimeToken = useLobbyRealtimeToken(lobby.code);
 
   useEffect(() => {
     if (!guestId) return;
