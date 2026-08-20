@@ -34,10 +34,10 @@ function friendlyRpcError(message: string, fallback: string, safetyFallback?: st
   if (/private\.moderation_reason|private\.moderate_text|private\.record_moderation_block/i.test(message)) {
     return safetyFallback ?? "That action crosses the EZNOOBS safety line.";
   }
-  if (/function .* does not exist|relation .* does not exist|schema cache|permission denied/i.test(message)) {
-    return fallback;
-  }
-  return message;
+  // Never return unexpected database/PostgREST details to the browser. Normal user-facing
+  // RPC failures are returned as out_reason rows, so an actual transport/database error
+  // should be treated as internal and replaced with a stable generic message.
+  return fallback;
 }
 
 const createSchema = z.object({
