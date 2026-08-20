@@ -18,12 +18,30 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
+const CONTENT_SECURITY_POLICY_REPORT_ONLY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join("; ");
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  // COOP is intentionally omitted: OAuth/share flows may need opener relationships;
+  // Start in report-only mode so beta testing can reveal TanStack/Lovable runtime
+  // requirements without risking a broken lobby. Promote to enforcing CSP only
+  // after the published build and custom domain have been verified.
+  "Content-Security-Policy-Report-Only": CONTENT_SECURITY_POLICY_REPORT_ONLY,
+  // COOP is intentionally omitted: future OAuth/share flows may need opener relationships;
   // test those before enabling Cross-Origin-Opener-Policy: same-origin.
 };
 
