@@ -36,7 +36,8 @@ export const getLobbySnapshot = createServerFn({ method: "POST" })
       p_guest_secret: guest.secret,
     });
 
-    if (error) throw new Error(error.message);
+    // Do not expose Postgres/PostgREST internals through a browser-facing server function.
+    if (error) throw new Error("Could not load lobby state.");
     const rows = result as { out_snapshot: unknown }[] | null;
     return (rows?.[0]?.out_snapshot ?? null) as any;
   });
