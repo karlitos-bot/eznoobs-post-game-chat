@@ -73,8 +73,21 @@ for (const header of [
   'X-Frame-Options',
   'Referrer-Policy',
   'Permissions-Policy',
+  'Content-Security-Policy-Report-Only',
 ]) {
   check(server.includes(`"${header}"`), `Server sends ${header}`);
+}
+
+for (const directive of [
+  "default-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "https://*.supabase.co",
+  "wss://*.supabase.co",
+]) {
+  check(server.includes(`"${directive}"`), `CSP report-only policy includes ${directive}`);
 }
 
 for (const table of ['lobbies', 'messages', 'participants', 'reactions', 'rematch_votes', 'reports']) {
