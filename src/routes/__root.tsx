@@ -14,6 +14,7 @@ import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLaye
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
 import { RoomExpiryGuard } from "@/components/eznoobs/RoomExpiryGuard";
+import { SecureRealtimeLayer } from "@/components/eznoobs/SecureRealtimeLayer";
 import { Toaster } from "@/components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -142,6 +143,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <SecureRealtimeLayer />
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
       <LobbyShowtimeLayer />
