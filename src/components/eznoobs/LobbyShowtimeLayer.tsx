@@ -121,7 +121,7 @@ export function LobbyShowtimeLayer() {
             const signature = `${best.key}:${best.count}:${mega ? "mega" : "normal"}`;
             card.classList.add("ez-combo-message", `ez-combo-${best.key}`);
             card.classList.toggle("ez-combo-mega", mega);
-            card.dataset.comboLabel = `${label} ×${best.count}`;
+            card.dataset['comboLabel'] = `${label} ×${best.count}`;
 
             const previous = comboState.current.get(card);
             if (previous !== signature) {
@@ -140,7 +140,7 @@ export function LobbyShowtimeLayer() {
               "ez-combo-mega",
               "ez-combo-pop",
             );
-            delete card.dataset.comboLabel;
+            delete card.dataset['comboLabel'];
             comboState.current.delete(card);
           }
 
