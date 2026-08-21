@@ -1,0 +1,138 @@
+/* Phase A / Batch 2 extras — consistent product finish outside the main chat */
+
+.ez-empty-state-clean {
+  overflow: hidden;
+  border-radius: 16px !important;
+}
+
+.ez-empty-state-clean::before {
+  content: "";
+  position: absolute;
+  right: clamp(1rem, 5vw, 3.5rem);
+  top: 50%;
+  width: clamp(4.5rem, 10vw, 7rem);
+  aspect-ratio: 1;
+  transform: translateY(-50%) rotate(4deg);
+  border-radius: 22px;
+  background: url('/eznoobs-mark.png') center / cover no-repeat;
+  opacity: 0.09;
+  filter: saturate(0.75);
+  box-shadow: 0 0 48px color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.ez-empty-state-clean::after {
+  content: "OPEN COMMS";
+  position: absolute;
+  right: 1rem;
+  bottom: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.2em;
+  color: color-mix(in oklab, var(--primary) 34%, transparent);
+}
+
+/* Join / offline / utility cards inherit the same softer premium geometry. */
+.ez-panel,
+.ez-panel-strong {
+  border-radius: 14px;
+}
+
+.ez-panel-strong.corner-cut,
+.ez-panel.corner-cut {
+  clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 13px 100%, 0 calc(100% - 13px));
+}
+
+/* Legal documents: keep them serious, but no longer visually flat. */
+main .ez-panel-strong > .divide-y > section {
+  transition: background 180ms ease;
+}
+
+main .ez-panel-strong > .divide-y > section:hover {
+  background: color-mix(in oklab, var(--surface) 20%, transparent);
+}
+
+main .ez-panel-strong ul li {
+  border-radius: 9px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 2.5%, transparent);
+}
+
+nav[aria-label="Legal pages"] {
+  overflow: hidden;
+  border-radius: 11px;
+  box-shadow: 0 10px 34px color-mix(in oklab, black 18%, transparent);
+}
+
+nav[aria-label="Legal pages"] a {
+  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+nav[aria-label="Legal pages"] a:hover {
+  background: color-mix(in oklab, var(--primary) 4%, var(--background));
+}
+
+/* Ops controls keep their private-console feel while matching the product. */
+main input,
+main textarea,
+main select {
+  border-radius: 9px;
+}
+
+nav[aria-label*="queue filters"] button,
+nav[aria-label*="Enforcement"] button {
+  border-radius: 8px;
+}
+
+article blockquote,
+article details {
+  border-radius: 9px;
+}
+
+/* Connection / final-minute strips are easier to read as transient system events. */
+main > div[class*="border-b"][class*="text-center"][class*="font-mono"] {
+  box-shadow: inset 0 -1px 0 color-mix(in oklab, white 2%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* More playful desktop roster grouping without changing semantics. */
+aside section > div:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-block: 0.2rem;
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.player-row {
+  border-radius: 9px;
+}
+
+/* Room toolbar controls feel like one cohesive command bar. */
+.ez-room-secondary-row button,
+.ez-room-primary-row button,
+.ez-room-primary-row > div[class*="border"] {
+  border-radius: 8px;
+}
+
+@media (max-width: 767px) {
+  .ez-empty-state-clean::before {
+    right: 0.75rem;
+    width: 4.4rem;
+    opacity: 0.065;
+  }
+
+  .ez-empty-state-clean::after {
+    display: none;
+  }
+
+  main .ez-panel-strong > .divide-y > section:hover {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main .ez-panel-strong > .divide-y > section,
+  nav[aria-label="Legal pages"] a {
+    transition: none !important;
+  }
+}
