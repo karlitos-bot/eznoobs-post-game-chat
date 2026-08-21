@@ -16,6 +16,7 @@ import phaseAPolishCss from "../phase-a-polish.css?url";
 import { AccessibilityLayer } from "@/components/eznoobs/AccessibilityLayer";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
 import { HomeLegalNav } from "@/components/eznoobs/HomeLegalNav";
+import { HomeLivePreview } from "@/components/eznoobs/HomeLivePreview";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
@@ -166,6 +167,7 @@ function RootComponent() {
       <AccessibilityLayer />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <HomeLivePreview />
       <HomeLegalNav />
       <SecureRealtimeLayer />
       <LobbyPersonalityLayer />
