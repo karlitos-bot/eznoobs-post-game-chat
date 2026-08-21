@@ -61,6 +61,14 @@ function PrivacyPolicy() {
           ],
         },
         {
+          title: "Moderation enforcement",
+          body: [
+            "If a moderator confirms abuse, EZNOOBS may apply a temporary chat mute, cooldown or suspension to the browser guest identity involved. The active restriction is keyed by a one-way hash of the browser guest public identifier rather than storing that identifier in plaintext in the restriction table.",
+            "Active restriction data is kept only for the moderator-selected restriction period. A limited enforcement audit record may be kept for the restriction period and up to 30 days afterward so repeat serious abuse and moderator reversals can be reviewed. Expired restrictions and expired enforcement audit records are automatically purged.",
+            "The current beta enforcement system does not create a permanent public profile and does not maintain a raw-IP ban list.",
+          ],
+        },
+        {
           title: "Rate limiting and service security",
           body: [
             "EZNOOBS records short-lived action events to enforce server-side rate limits and prevent obvious abuse of room creation, joins, messages, reactions, reports and security-sensitive room endpoints. These operational events are not public activity histories.",
