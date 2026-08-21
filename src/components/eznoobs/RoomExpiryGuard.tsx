@@ -43,12 +43,21 @@ export function RoomExpiryGuard() {
         const main = document.querySelector<HTMLElement>("main");
         if (main) {
           const rect = main.getBoundingClientRect();
-          setMainRect({
+          const nextRect: MainRect = {
             top: Math.round(rect.top),
             left: Math.round(rect.left),
             width: Math.round(rect.width),
             height: Math.round(rect.height),
-          });
+          };
+          setMainRect((current) =>
+            current &&
+            current.top === nextRect.top &&
+            current.left === nextRect.left &&
+            current.width === nextRect.width &&
+            current.height === nextRect.height
+              ? current
+              : nextRect,
+          );
         }
 
         if (hasExpiredSignal()) setExpired(true);
@@ -59,7 +68,9 @@ export function RoomExpiryGuard() {
     const observer = new MutationObserver(inspect);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     window.addEventListener("resize", inspect);
-    const fallback = window.setInterval(inspect, 500);
+    // DOM mutations already catch the live timer. Keep only a slow fallback for
+    // edge cases instead of polling layout twice per second for the whole room lifetime.
+    const fallback = window.setInterval(inspect, 2500);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
