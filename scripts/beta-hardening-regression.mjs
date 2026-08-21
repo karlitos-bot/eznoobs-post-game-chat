@@ -78,8 +78,8 @@ check(!firstUseGate.includes('birthday or ID') && !firstUseGate.includes('stored
 check(firstUseGate.includes('I confirm that I am 18 years old or older.'), '18+ gate requires explicit self-attestation');
 check(firstUseGate.includes('No hate/slurs targeting race, sex, religion or identity.'), 'Rules reminder states the protected-class hate boundary');
 check(firstUseGate.includes('No threats, doxxing, or personal contact/location information.'), 'Rules reminder states the threats/doxxing boundary');
-check(firstUseGate.includes('localStorage.setItem(ADULT_ACK_KEY, "yes")'), '18+ acknowledgment is browser-local and persistent');
-check(firstUseGate.includes('localStorage.setItem(RULES_ACK_KEY, "yes")'), 'Rules acknowledgment is browser-local and persistent');
+check(firstUseGate.includes('function rememberAcknowledgment') && firstUseGate.includes('window.localStorage.setItem(key, "yes")'), 'Accepted first-use gates persist when browser storage is available');
+check(firstUseGate.includes('memoryAcknowledgments.add(key)') && firstUseGate.includes('function hasAcknowledgment'), 'First-use gates have an in-memory fallback when persistent storage is unavailable');
 check(firstUseGate.includes('ROOM_PATH_RE.test(pathname)'), 'Rules reminder is scoped to first lobby entry');
 check(firstUseGate.includes('aria-modal="true"') && firstUseGate.includes('aria-describedby="eznoobs-first-use-description"'), 'First-use modal exposes dialog semantics');
 check(firstUseGate.includes('function trapFocus') && firstUseGate.includes('previousFocusRef'), 'First-use modal traps and restores keyboard focus');
