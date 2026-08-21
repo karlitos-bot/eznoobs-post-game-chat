@@ -28,6 +28,9 @@ jobs:
       - name: Security regression checks
         run: npm run security:check
 
+      - name: Mobile regression checks
+        run: npm run mobile:check
+
       - name: Lint
         run: npm run lint
 
