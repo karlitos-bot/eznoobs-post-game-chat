@@ -34,6 +34,9 @@ jobs:
       - name: Accessibility regression checks
         run: npm run accessibility:check
 
+      - name: Copy regression checks
+        run: npm run copy:check
+
       - name: Lint
         run: npm run lint
 
