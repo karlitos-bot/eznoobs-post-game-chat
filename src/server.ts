@@ -35,6 +35,7 @@ const CONTENT_SECURITY_POLICY_REPORT_ONLY = [
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
+  "X-Permitted-Cross-Domain-Policies": "none",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   // Start in report-only mode so beta testing can reveal TanStack/Lovable runtime
@@ -45,11 +46,23 @@ const SECURITY_HEADERS: Record<string, string> = {
   // test those before enabling Cross-Origin-Opener-Policy: same-origin.
 };
 
-function applySecurityHeaders(response: Response): Response {
+function isPrivateSurface(request: Request) {
+  const pathname = new URL(request.url).pathname;
+  return /^\/room\//i.test(pathname) || /^\/ops(?:\/|$)/i.test(pathname);
+}
+
+function applySecurityHeaders(response: Response, request: Request): Response {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(name, value);
   }
+
+  if (isPrivateSurface(request)) {
+    headers.set("Cache-Control", "no-store, max-age=0");
+    headers.set("Pragma", "no-cache");
+    headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -89,7 +102,7 @@ export default {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return applySecurityHeaders(normalized);
+      return applySecurityHeaders(normalized, request);
     } catch (error) {
       console.error(error);
       return applySecurityHeaders(
@@ -97,6 +110,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        request,
       );
     }
   },
