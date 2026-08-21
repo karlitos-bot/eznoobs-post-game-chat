@@ -48,6 +48,25 @@ function messageTeam(card: HTMLElement): "blue" | "red" | null {
   return null;
 }
 
+function shouldDecorate(mutations: MutationRecord[]) {
+  return mutations.some((mutation) => {
+    if (mutation.type !== "attributes") return true;
+    const target = mutation.target;
+    if (!(target instanceof HTMLElement)) return true;
+
+    // Ignore class changes produced by this layer itself. Message additions and reaction
+    // count changes are observed through childList / aria-label mutations instead.
+    if (
+      mutation.attributeName === "class" &&
+      (target.classList.contains("message-card") || target.classList.contains("live-activity-strip"))
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 export function LobbyShowtimeLayer() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isRoom = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/i.test(pathname);
@@ -63,39 +82,47 @@ export function LobbyShowtimeLayer() {
   useEffect(() => {
     if (!isRoom) {
       setRunbackText(null);
+      setMainRect(null);
       previousRunbackReady.current = null;
       return;
     }
 
+    let roomMain: HTMLElement | null = null;
     let frame = 0;
+    let mountObserver: MutationObserver | null = null;
+    let roomObserver: MutationObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const measureMain = () => {
+      if (!roomMain) return;
+      const rect = roomMain.getBoundingClientRect();
+      const next = {
+        top: Math.round(rect.top),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+      setMainRect((current) => {
+        if (
+          current &&
+          current.top === next.top &&
+          current.left === next.left &&
+          current.width === next.width &&
+          current.height === next.height
+        ) {
+          return current;
+        }
+        return next;
+      });
+    };
 
     const decorate = () => {
+      if (!roomMain || document.visibilityState === "hidden") return;
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const main = document.querySelector<HTMLElement>("main");
-        if (main) {
-          const rect = main.getBoundingClientRect();
-          setMainRect((current) => {
-            const next = {
-              top: Math.round(rect.top),
-              left: Math.round(rect.left),
-              width: Math.round(rect.width),
-              height: Math.round(rect.height),
-            };
-            if (
-              current &&
-              current.top === next.top &&
-              current.left === next.left &&
-              current.width === next.width &&
-              current.height === next.height
-            ) {
-              return current;
-            }
-            return next;
-          });
-        }
+        if (!roomMain) return;
 
-        const cards = Array.from(document.querySelectorAll<HTMLElement>(".message-card"));
+        const cards = Array.from(roomMain.querySelectorAll<HTMLElement>(".message-card"));
         let blueScore = 0;
         let redScore = 0;
 
@@ -121,7 +148,7 @@ export function LobbyShowtimeLayer() {
             const signature = `${best.key}:${best.count}:${mega ? "mega" : "normal"}`;
             card.classList.add("ez-combo-message", `ez-combo-${best.key}`);
             card.classList.toggle("ez-combo-mega", mega);
-            card.dataset['comboLabel'] = `${label} ×${best.count}`;
+            card.dataset.comboLabel = `${label} ×${best.count}`;
 
             const previous = comboState.current.get(card);
             if (previous !== signature) {
@@ -140,13 +167,14 @@ export function LobbyShowtimeLayer() {
               "ez-combo-mega",
               "ez-combo-pop",
             );
-            delete card.dataset['comboLabel'];
+            delete card.dataset.comboLabel;
             comboState.current.delete(card);
           }
 
           const team = messageTeam(card);
           if (!team) return;
-          const recency = recentCards.length <= 1 ? 1 : 0.7 + (index / (recentCards.length - 1)) * 0.6;
+          const recency =
+            recentCards.length <= 1 ? 1 : 0.7 + (index / (recentCards.length - 1)) * 0.6;
           const weight = recency * (1 + Math.min(reactionTotal, 8) * 0.22);
           if (team === "blue") blueScore += weight;
           if (team === "red") redScore += weight;
@@ -172,7 +200,7 @@ export function LobbyShowtimeLayer() {
           });
         }
 
-        const runback = document.querySelector<HTMLElement>(".runback-ready");
+        const runback = roomMain.querySelector<HTMLElement>(".runback-ready");
         const ready = Boolean(runback);
         if (previousRunbackReady.current === false && ready && runback) {
           const copy = (runback.textContent ?? "RUNBACK LOCKED")
@@ -185,7 +213,7 @@ export function LobbyShowtimeLayer() {
         }
         previousRunbackReady.current = ready;
 
-        const activityStrip = document.querySelector<HTMLElement>(".live-activity-strip");
+        const activityStrip = roomMain.querySelector<HTMLElement>(".live-activity-strip");
         if (activityStrip) {
           const text = (activityStrip.textContent ?? "").replace(/\s+/g, " ").trim().toUpperCase();
           activityStrip.classList.toggle(
@@ -196,24 +224,55 @@ export function LobbyShowtimeLayer() {
       });
     };
 
-    decorate();
-    const observer = new MutationObserver(decorate);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ["aria-label", "class"],
-    });
-    window.addEventListener("resize", decorate);
-    const fallback = window.setInterval(decorate, 1200);
+    const attachToMain = (main: HTMLElement) => {
+      roomMain = main;
+      mountObserver?.disconnect();
+      mountObserver = null;
+      measureMain();
+      decorate();
+
+      resizeObserver = new ResizeObserver(measureMain);
+      resizeObserver.observe(main);
+
+      roomObserver = new MutationObserver((mutations) => {
+        if (shouldDecorate(mutations)) decorate();
+      });
+      roomObserver.observe(main, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["aria-label", "class"],
+      });
+    };
+
+    const findMain = () => {
+      const main = document.querySelector<HTMLElement>("main");
+      if (!main || roomMain === main) return Boolean(main);
+      attachToMain(main);
+      return true;
+    };
+
+    if (!findMain()) {
+      mountObserver = new MutationObserver(findMain);
+      mountObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        measureMain();
+        decorate();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
       if (runbackTimer.current) clearTimeout(runbackTimer.current);
-      clearInterval(fallback);
-      observer.disconnect();
-      window.removeEventListener("resize", decorate);
+      mountObserver?.disconnect();
+      roomObserver?.disconnect();
+      resizeObserver?.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [isRoom]);
 
@@ -267,7 +326,9 @@ export function LobbyShowtimeLayer() {
             </div>
             <p className="ez-runback-kicker">Vote threshold reached</p>
             <p className="ez-runback-title">RUNBACK LOCKED</p>
-            <p className="ez-runback-sub">{runbackText.replace(/^RUNBACK LOCKED\s*·?\s*/i, "")}</p>
+            <p className="ez-runback-sub">
+              {runbackText.replace(/^RUNBACK LOCKED\s*·?\s*/i, "")}
+            </p>
           </div>
         </div>
       )}
