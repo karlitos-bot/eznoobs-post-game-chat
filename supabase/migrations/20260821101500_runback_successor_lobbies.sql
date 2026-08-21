@@ -234,9 +234,12 @@ BEGIN
 END;
 $$;
 
+-- The app server deliberately uses the publishable/anon key. These SECURITY DEFINER
+-- RPCs therefore allow anon execution but remain protected by the full browser guest
+-- credential, membership checks, Runback threshold checks and server-side rate limits.
 REVOKE EXECUTE ON FUNCTION public.create_runback_lobby(text, text, text)
-FROM PUBLIC, anon, authenticated;
+FROM PUBLIC, authenticated;
 REVOKE EXECUTE ON FUNCTION public.get_runback_lobby(text, text, text)
-FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_runback_lobby(text, text, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_runback_lobby(text, text, text) TO service_role;
+FROM PUBLIC, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_runback_lobby(text, text, text) TO anon, service_role;
+GRANT EXECUTE ON FUNCTION public.get_runback_lobby(text, text, text) TO anon, service_role;
