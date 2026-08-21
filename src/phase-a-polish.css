@@ -1,0 +1,618 @@
+/* EZNOOBS Phase A — premium product polish.
+   Presentational only: no lobby/realtime behavior lives here. */
+
+:root {
+  --ez-ease-out: cubic-bezier(.18,.84,.28,1);
+  --ez-ease-spring: cubic-bezier(.16,1,.3,1);
+  --ez-panel-radius: 10px;
+  --ez-chip-radius: 7px;
+  --ez-shadow-deep: 0 22px 70px color-mix(in oklab, black 42%, transparent);
+  --ez-shadow-soft: 0 12px 38px color-mix(in oklab, black 25%, transparent);
+}
+
+body {
+  background:
+    radial-gradient(900px 520px at 8% -10%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 72%),
+    radial-gradient(760px 520px at 96% 12%, color-mix(in oklab, var(--blue-team) 4%, transparent), transparent 76%),
+    var(--background);
+}
+
+/* ---------- Global depth / interaction ---------- */
+
+.ez-panel,
+.ez-panel-strong {
+  border-radius: var(--ez-panel-radius);
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 22px 70px color-mix(in oklab, black 34%, transparent);
+}
+
+.ez-panel-strong {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--surface) 97%, black 3%), color-mix(in oklab, var(--background) 94%, black 6%));
+}
+
+.tactical-button {
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+    0 7px 22px color-mix(in oklab, var(--primary) 8%, transparent);
+  transition:
+    transform 170ms var(--ez-ease-out),
+    box-shadow 170ms ease,
+    filter 170ms ease;
+}
+
+.tactical-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 22%, transparent),
+    0 12px 32px color-mix(in oklab, var(--primary) 13%, transparent);
+  filter: saturate(1.08);
+}
+
+.tactical-button:active:not(:disabled) {
+  transform: translateY(0) scale(.985);
+}
+
+input,
+textarea,
+select {
+  border-radius: 7px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent),
+    0 0 24px color-mix(in oklab, var(--primary) 5%, transparent);
+}
+
+/* ---------- Homepage ---------- */
+
+body:has(#create-lobby) > div,
+body:has(#create-lobby) #root {
+  isolation: isolate;
+}
+
+body:has(#create-lobby) .grid-bg {
+  opacity: .20 !important;
+  background-size: 62px 62px;
+  animation: ez-grid-drift 24s linear infinite;
+}
+
+body:has(#create-lobby) .radar-glow {
+  background:
+    radial-gradient(65% 52% at 30% 4%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 73%),
+    radial-gradient(42% 38% at 94% 34%, color-mix(in oklab, var(--blue-team) 8%, transparent), transparent 76%),
+    radial-gradient(36% 34% at 82% 88%, color-mix(in oklab, var(--red-team) 4%, transparent), transparent 78%);
+}
+
+body:has(#create-lobby) header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in oklab, var(--background) 80%, transparent) !important;
+  border-bottom-color: color-mix(in oklab, var(--border) 78%, var(--primary) 22%) !important;
+  box-shadow: 0 12px 44px color-mix(in oklab, black 20%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+body:has(#create-lobby) header > div > div:first-child {
+  transition: transform 180ms var(--ez-ease-out);
+}
+
+body:has(#create-lobby) header > div > div:first-child:hover {
+  transform: translateX(2px);
+}
+
+body:has(#create-lobby) header > div > div:last-child {
+  border-radius: 999px;
+  box-shadow: inset 0 0 18px color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+body:has(#create-lobby) main > div:first-child {
+  position: relative;
+}
+
+body:has(#create-lobby) main > div:first-child::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -2rem -3rem;
+  z-index: -1;
+  background:
+    radial-gradient(44% 55% at 18% 42%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 78%),
+    radial-gradient(40% 52% at 87% 48%, color-mix(in oklab, var(--blue-team) 4%, transparent), transparent 78%);
+  filter: blur(18px);
+}
+
+body:has(#create-lobby) h1 {
+  text-shadow: 0 16px 55px color-mix(in oklab, black 36%, transparent);
+}
+
+body:has(#create-lobby) h1 .text-primary {
+  position: relative;
+  text-shadow:
+    0 0 32px color-mix(in oklab, var(--primary) 12%, transparent),
+    0 12px 40px color-mix(in oklab, black 34%, transparent);
+  animation: ez-hero-lime 4.8s ease-in-out infinite;
+}
+
+body:has(#create-lobby) main img[alt*="mascot"] {
+  border-radius: 9px;
+  transform: translateZ(0);
+  animation: ez-mascot-float 5s ease-in-out infinite;
+}
+
+body:has(#create-lobby) main img[alt*="mascot"]::selection {
+  background: transparent;
+}
+
+body:has(#create-lobby) #create-lobby {
+  border-color: color-mix(in oklab, var(--border) 70%, var(--primary) 30%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 5%, transparent),
+    0 32px 110px color-mix(in oklab, black 48%, transparent),
+    0 0 70px color-mix(in oklab, var(--primary) 5%, transparent);
+  transform: translateZ(0);
+}
+
+body:has(#create-lobby) #create-lobby::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 28%, color-mix(in oklab, white 3.5%, transparent) 48%, transparent 68%);
+  transform: translateX(-120%);
+  animation: ez-panel-sheen 9s ease-in-out infinite 1.5s;
+}
+
+body:has(#create-lobby) #create-lobby fieldset button,
+body:has(#create-lobby) #create-lobby form + div button,
+body:has(#create-lobby) #create-lobby form button[type="button"] {
+  border-radius: 7px;
+}
+
+body:has(#create-lobby) #create-lobby fieldset button {
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
+  transition:
+    transform 170ms var(--ez-ease-out),
+    border-color 170ms ease,
+    background 170ms ease,
+    box-shadow 170ms ease;
+}
+
+body:has(#create-lobby) #create-lobby fieldset button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 7%, transparent),
+    0 10px 24px color-mix(in oklab, black 24%, transparent);
+}
+
+body:has(#create-lobby) #create-lobby fieldset button[aria-pressed="true"] {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    0 10px 28px color-mix(in oklab, currentColor 7%, transparent);
+}
+
+body:has(#create-lobby) main > section,
+body:has(#create-lobby) main > div + section,
+body:has(#create-lobby) main > section + section,
+body:has(#create-lobby) main > section + div {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--ez-shadow-soft);
+}
+
+body:has(#create-lobby) main article {
+  position: relative;
+  transition:
+    transform 180ms var(--ez-ease-out),
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+body:has(#create-lobby) main article:hover {
+  z-index: 2;
+  transform: translateY(-3px);
+  background: color-mix(in oklab, var(--surface) 76%, var(--background) 24%) !important;
+  box-shadow: 0 14px 34px color-mix(in oklab, black 28%, transparent);
+}
+
+body:has(#create-lobby) footer {
+  background: color-mix(in oklab, var(--background) 84%, transparent) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* ---------- Live room: Discord-inspired clarity, EZNOOBS identity ---------- */
+
+body:has(textarea[aria-label="Message"]) {
+  background:
+    radial-gradient(900px 620px at 50% 100%, color-mix(in oklab, var(--primary) 3%, transparent), transparent 72%),
+    var(--background);
+}
+
+body:has(textarea[aria-label="Message"]) header {
+  background: color-mix(in oklab, var(--background) 88%, transparent) !important;
+  border-color: color-mix(in oklab, var(--border) 80%, var(--primary) 20%) !important;
+  box-shadow: 0 12px 36px color-mix(in oklab, black 25%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+}
+
+body:has(textarea[aria-label="Message"]) aside {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 38%, transparent), color-mix(in oklab, var(--background) 88%, transparent)) !important;
+  box-shadow: 12px 0 35px color-mix(in oklab, black 14%, transparent);
+}
+
+.message-card {
+  --ez-message-accent: var(--spectator);
+  position: relative;
+  margin-inline: 0;
+  border-radius: 10px;
+  border-color: color-mix(in oklab, var(--border) 82%, transparent);
+  background:
+    linear-gradient(110deg, color-mix(in oklab, var(--surface) 76%, transparent), color-mix(in oklab, var(--background) 64%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 2.7%, transparent),
+    0 6px 20px color-mix(in oklab, black 14%, transparent);
+  transition:
+    transform 150ms var(--ez-ease-out),
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.message-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--ez-message-accent) 6%, transparent), transparent 38%);
+  opacity: .85;
+}
+
+.message-card:has(> span.bg-blue-team) {
+  --ez-message-accent: var(--blue-team);
+  border-color: color-mix(in oklab, var(--blue-team) 18%, var(--border));
+}
+
+.message-card:has(> span.bg-red-team) {
+  --ez-message-accent: var(--red-team);
+  border-color: color-mix(in oklab, var(--red-team) 18%, var(--border));
+}
+
+.message-card:has(> span.bg-spectator) {
+  --ez-message-accent: var(--spectator);
+}
+
+.message-card:hover {
+  transform: translateX(3px) translateY(-1px);
+  border-color: color-mix(in oklab, var(--ez-message-accent) 34%, var(--border));
+  background:
+    linear-gradient(110deg, color-mix(in oklab, var(--surface) 92%, transparent), color-mix(in oklab, var(--background) 72%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 10px 30px color-mix(in oklab, black 24%, transparent),
+    -7px 0 28px color-mix(in oklab, var(--ez-message-accent) 4%, transparent);
+}
+
+.message-card.own-message {
+  margin-left: clamp(.35rem, 2vw, 1.7rem);
+  border-color: color-mix(in oklab, var(--primary) 24%, var(--border));
+  background:
+    linear-gradient(105deg, color-mix(in oklab, var(--primary) 7%, var(--surface)), color-mix(in oklab, var(--background) 72%, transparent));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--primary) 3%, transparent),
+    0 8px 24px color-mix(in oklab, black 18%, transparent);
+}
+
+.message-card.own-message::before {
+  background: linear-gradient(270deg, color-mix(in oklab, var(--primary) 6%, transparent), transparent 45%);
+}
+
+.message-card > span.absolute:first-child {
+  width: 3px !important;
+  top: .55rem !important;
+  bottom: .55rem !important;
+  left: 0 !important;
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 0 14px color-mix(in oklab, var(--ez-message-accent) 28%, transparent);
+}
+
+.message-avatar {
+  position: relative;
+  z-index: 2;
+  border-radius: 9px;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--ez-message-accent) 9%, var(--surface)), var(--background)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 5%, transparent),
+    0 5px 16px color-mix(in oklab, black 22%, transparent);
+}
+
+.message-card:hover .message-avatar {
+  transform: translateY(-2px) scale(1.055) rotate(-1deg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 7%, transparent),
+    0 8px 22px color-mix(in oklab, var(--ez-message-accent) 10%, transparent);
+}
+
+.message-body {
+  position: relative;
+  z-index: 2;
+  letter-spacing: .002em;
+}
+
+.message-heat-badge {
+  position: relative;
+  z-index: 2;
+  border: 1px solid color-mix(in oklab, var(--primary) 18%, var(--border));
+  border-radius: 999px;
+  padding: .18rem .42rem;
+  background: color-mix(in oklab, var(--primary) 4%, transparent);
+}
+
+.reaction-rail {
+  position: relative;
+  z-index: 3;
+  margin-top: .62rem !important;
+}
+
+.reaction-chip {
+  min-height: 30px;
+  border-radius: var(--ez-chip-radius);
+  border-color: color-mix(in oklab, var(--border) 78%, transparent);
+  background: color-mix(in oklab, var(--background) 78%, var(--surface) 22%);
+  opacity: .82;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 2.5%, transparent);
+  transition:
+    transform 130ms var(--ez-ease-out),
+    border-color 130ms ease,
+    background 130ms ease,
+    box-shadow 130ms ease,
+    opacity 130ms ease;
+}
+
+.reaction-chip:hover,
+.reaction-chip:focus-visible {
+  transform: translateY(-3px) scale(1.04);
+  border-color: color-mix(in oklab, var(--primary) 36%, var(--border));
+  background: color-mix(in oklab, var(--surface) 78%, var(--primary) 4%);
+  box-shadow: 0 8px 18px color-mix(in oklab, black 20%, transparent);
+}
+
+.reaction-chip[aria-pressed="true"] {
+  color: var(--primary);
+  border-color: color-mix(in oklab, var(--primary) 58%, var(--border));
+  background: color-mix(in oklab, var(--primary) 10%, var(--background));
+  box-shadow:
+    inset 0 0 16px color-mix(in oklab, var(--primary) 4%, transparent),
+    0 0 18px color-mix(in oklab, var(--primary) 5%, transparent);
+}
+
+.message-card.message-heated {
+  border-color: color-mix(in oklab, var(--primary) 34%, var(--border));
+  box-shadow:
+    inset 0 0 30px color-mix(in oklab, var(--primary) 3%, transparent),
+    0 9px 26px color-mix(in oklab, black 20%, transparent);
+}
+
+.message-card.message-on-fire,
+.message-card.ez-combo-mega {
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--border));
+  background:
+    radial-gradient(80% 150% at 0% 50%, color-mix(in oklab, var(--primary) 7%, transparent), transparent 58%),
+    linear-gradient(110deg, color-mix(in oklab, var(--surface) 88%, transparent), color-mix(in oklab, var(--background) 70%, transparent));
+  box-shadow:
+    inset 0 0 38px color-mix(in oklab, var(--primary) 5%, transparent),
+    0 12px 38px color-mix(in oklab, var(--primary) 5%, black 20%);
+}
+
+.message-card.ez-combo-message::after {
+  border-radius: 6px !important;
+  letter-spacing: .12em !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 5%, transparent),
+    0 8px 24px color-mix(in oklab, black 22%, transparent),
+    0 0 24px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+}
+
+.reaction-burst {
+  font-size: 1.05rem !important;
+  filter: drop-shadow(0 8px 12px color-mix(in oklab, black 42%, transparent));
+}
+
+/* Composer: floating command-console feel. */
+.composer-shell {
+  border-top-color: color-mix(in oklab, var(--border) 76%, var(--primary) 24%) !important;
+  background: color-mix(in oklab, var(--background) 88%, transparent) !important;
+  box-shadow:
+    0 -16px 44px color-mix(in oklab, black 25%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 2%, transparent);
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.composer-shell textarea {
+  border-radius: 9px;
+  border-color: color-mix(in oklab, var(--border) 76%, var(--primary) 24%);
+  background: color-mix(in oklab, var(--surface) 76%, var(--background) 24%) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 2%, transparent),
+    0 8px 22px color-mix(in oklab, black 18%, transparent);
+}
+
+.composer-shell textarea:focus {
+  border-color: color-mix(in oklab, var(--primary) 64%, var(--border));
+  background: color-mix(in oklab, var(--surface) 88%, var(--background) 12%) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
+    0 10px 30px color-mix(in oklab, var(--primary) 5%, black 18%);
+}
+
+.composer-shell button[aria-label="Send message"] {
+  border-radius: 9px;
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+/* Roster = compact gaming lobby, not a spreadsheet. */
+.player-row {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--surface) 34%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 1.5%, transparent);
+}
+
+.player-row:hover {
+  transform: translateX(4px);
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  box-shadow: 0 7px 20px color-mix(in oklab, black 18%, transparent);
+}
+
+.player-row > span:first-child {
+  border-radius: 7px;
+}
+
+/* Salt becomes a room-state instrument. */
+[data-salt-level] {
+  position: relative;
+  border-radius: 999px;
+  padding: .28rem .45rem .28rem .3rem;
+  background: color-mix(in oklab, var(--background) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 70%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+[data-salt-level="WARM"] {
+  background: color-mix(in oklab, oklch(0.83 0.15 90) 4%, var(--background));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, oklch(0.83 0.15 90) 18%, var(--border)),
+    0 0 22px color-mix(in oklab, oklch(0.83 0.15 90) 4%, transparent);
+}
+
+[data-salt-level="SPICY"] {
+  transform: scale(1.025);
+  background: color-mix(in oklab, oklch(0.72 0.19 55) 6%, var(--background));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, oklch(0.72 0.19 55) 28%, var(--border)),
+    0 0 28px color-mix(in oklab, oklch(0.72 0.19 55) 7%, transparent);
+}
+
+[data-salt-level="NUCLEAR"] {
+  transform: scale(1.05);
+  background: color-mix(in oklab, var(--red-team) 8%, var(--background));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--red-team) 38%, var(--border)),
+    0 0 34px color-mix(in oklab, var(--red-team) 10%, transparent);
+}
+
+.chat-energy-spicy::before,
+.chat-energy-nuclear::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: .42;
+  background:
+    radial-gradient(45% 32% at 20% 100%, color-mix(in oklab, var(--blue-team) 4%, transparent), transparent 74%),
+    radial-gradient(45% 32% at 80% 100%, color-mix(in oklab, var(--red-team) 4%, transparent), transparent 74%);
+}
+
+.chat-energy-nuclear::before {
+  opacity: .68;
+  animation: ez-room-breathe 2.8s ease-in-out infinite;
+}
+
+/* Opening shots: quick-fire cards. */
+div:has(> div > span:nth-child(2)):has(button[type="button"]) > div:has(> button[type="button"]) button {
+  border-radius: 7px;
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes ez-grid-drift {
+  from { background-position: 0 0; }
+  to { background-position: 62px 62px; }
+}
+
+@keyframes ez-hero-lime {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.08); }
+}
+
+@keyframes ez-mascot-float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-5px) rotate(-.5deg); }
+}
+
+@keyframes ez-panel-sheen {
+  0%, 72%, 100% { transform: translateX(-120%); opacity: 0; }
+  78% { opacity: 1; }
+  92% { transform: translateX(120%); opacity: .8; }
+  94% { opacity: 0; }
+}
+
+@keyframes ez-room-breathe {
+  0%, 100% { opacity: .45; filter: saturate(1); }
+  50% { opacity: .78; filter: saturate(1.18); }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --ez-panel-radius: 8px;
+  }
+
+  body:has(#create-lobby) header {
+    position: relative;
+  }
+
+  body:has(#create-lobby) .grid-bg {
+    animation-duration: 32s;
+  }
+
+  .message-card {
+    border-radius: 8px;
+  }
+
+  .message-card.own-message {
+    margin-left: .2rem;
+  }
+
+  .reaction-chip {
+    min-height: 36px;
+  }
+
+  .composer-shell {
+    box-shadow: 0 -10px 30px color-mix(in oklab, black 25%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(#create-lobby) .grid-bg,
+  body:has(#create-lobby) h1 .text-primary,
+  body:has(#create-lobby) main img[alt*="mascot"],
+  body:has(#create-lobby) #create-lobby::before,
+  .chat-energy-nuclear::before {
+    animation: none !important;
+  }
+
+  .message-card:hover,
+  .message-card.own-message,
+  .reaction-chip:hover,
+  .player-row:hover,
+  .tactical-button:hover:not(:disabled) {
+    transform: none !important;
+  }
+}
