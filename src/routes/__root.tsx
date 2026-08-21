@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
@@ -148,6 +149,7 @@ function RootComponent() {
       <RoomClarityLayer />
       <LobbyShowtimeLayer />
       <RoomExpiryGuard />
+      <FirstUseSafetyGate />
       <Toaster />
     </QueryClientProvider>
   );
