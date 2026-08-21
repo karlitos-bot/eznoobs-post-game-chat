@@ -35,6 +35,10 @@ const REACTION_NAMES: Record<string, string> = {
   Nuclear: "☢",
 };
 
+const RUNBACK_RECOVERY_DELAYS = [0, 3_000, 10_000, 30_000] as const;
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function roomCodeFromPath(pathname: string) {
   return pathname.match(/^\/room\/([ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5})$/i)?.[1]?.toUpperCase() ?? null;
 }
@@ -112,9 +116,10 @@ export function RunbackAftermathLayer() {
     topReactionCount: 0,
     runback: "No Runback vote",
   });
-  const lookedUp = useRef(false);
   const statsRef = useRef(stats);
   const runbackChannelRef = useRef<RealtimeChannel | null>(null);
+  const aftermathRef = useRef<HTMLDivElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     statsRef.current = stats;
@@ -126,7 +131,6 @@ export function RunbackAftermathLayer() {
       setRunbackCode(null);
       setExpired(false);
       setShowAftermath(false);
-      lookedUp.current = false;
       return;
     }
 
@@ -173,15 +177,31 @@ export function RunbackAftermathLayer() {
     };
   }, [code]);
 
+  // Realtime is the fast path. If a client misses the Runback broadcast, perform a
+  // small bounded set of credential-protected lookups instead of polling forever.
   useEffect(() => {
-    if (!code || !locked || runbackCode || lookedUp.current) return;
-    lookedUp.current = true;
+    if (!code || !locked || runbackCode) return;
+
+    let cancelled = false;
+    const timers: number[] = [];
     const guestId = getGuestId();
-    void lookupRunback({ data: { code, guestId } })
-      .then((nextCode) => {
-        if (nextCode) setRunbackCode(nextCode);
-      })
-      .catch(() => {});
+
+    RUNBACK_RECOVERY_DELAYS.forEach((delay) => {
+      const timer = window.setTimeout(() => {
+        if (cancelled || runbackCode) return;
+        void lookupRunback({ data: { code, guestId } })
+          .then((nextCode) => {
+            if (!cancelled && nextCode) setRunbackCode(nextCode);
+          })
+          .catch(() => {});
+      }, delay);
+      timers.push(timer);
+    });
+
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, [code, locked, lookupRunback, runbackCode]);
 
   useEffect(() => {
@@ -208,6 +228,52 @@ export function RunbackAftermathLayer() {
       void supabase.removeChannel(channel);
     };
   }, [code, realtimeToken]);
+
+  useEffect(() => {
+    if (!showAftermath) return;
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const frame = requestAnimationFrame(() => {
+      aftermathRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowAftermath(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        aftermathRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [],
+      ).filter((element) => element.offsetParent !== null && !element.hasAttribute("disabled"));
+      if (focusable.length === 0) return;
+
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus({ preventScroll: true });
+      previousFocusRef.current = null;
+    };
+  }, [showAftermath]);
 
   async function createNextRoom() {
     if (!code || creating) return;
@@ -297,10 +363,12 @@ export function RunbackAftermathLayer() {
 
       {expired && showAftermath && (
         <div
+          ref={aftermathRef}
           className="ez-aftermath"
           role="dialog"
           aria-modal="true"
           aria-labelledby="ez-aftermath-title"
+          aria-describedby="ez-aftermath-description"
         >
           <div className="ez-aftermath-backdrop" />
           <section className="ez-aftermath-card">
@@ -311,7 +379,9 @@ export function RunbackAftermathLayer() {
                   <Radio className="size-3.5" /> CHANNEL CLOSED
                 </span>
                 <h2 id="ez-aftermath-title">MATCH AFTERMATH</h2>
-                <p>The room is gone. The damage report remains on this screen only.</p>
+                <p id="ez-aftermath-description">
+                  The room is gone. This summary was captured locally and remains on this screen only.
+                </p>
               </div>
               <button
                 type="button"
