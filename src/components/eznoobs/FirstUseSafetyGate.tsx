@@ -1,14 +1,34 @@
 import { useRouterState } from "@tanstack/react-router";
 import { ShieldCheck, Skull, UserRoundCheck } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 const ADULT_ACK_KEY = "eznoobs:adult-ack:v1";
 const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
 const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const memoryAcknowledgments = new Set<string>();
 
 type GateStage = "age" | "rules" | null;
+
+function hasAcknowledgment(key: string) {
+  if (memoryAcknowledgments.has(key)) return true;
+  try {
+    return window.localStorage.getItem(key) === "yes";
+  } catch {
+    return false;
+  }
+}
+
+function rememberAcknowledgment(key: string) {
+  memoryAcknowledgments.add(key);
+  try {
+    window.localStorage.setItem(key, "yes");
+  } catch {
+    // Some privacy modes may block persistent browser storage. Keep the acknowledgment
+    // in memory for this tab/session so the user is never trapped behind the modal.
+  }
+}
 
 export function FirstUseSafetyGate() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -21,8 +41,8 @@ export function FirstUseSafetyGate() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const adultAccepted = localStorage.getItem(ADULT_ACK_KEY) === "yes";
-    const rulesAccepted = localStorage.getItem(RULES_ACK_KEY) === "yes";
+    const adultAccepted = hasAcknowledgment(ADULT_ACK_KEY);
+    const rulesAccepted = hasAcknowledgment(RULES_ACK_KEY);
 
     if (!adultAccepted) {
       setStage("age");
@@ -55,7 +75,7 @@ export function FirstUseSafetyGate() {
     };
   }, [stage]);
 
-  function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+  function trapFocus(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Tab") return;
     const focusable = Array.from(
       dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [],
@@ -77,10 +97,10 @@ export function FirstUseSafetyGate() {
 
   function acceptAge() {
     if (!checked) return;
-    localStorage.setItem(ADULT_ACK_KEY, "yes");
+    rememberAcknowledgment(ADULT_ACK_KEY);
     setChecked(false);
 
-    if (ROOM_PATH_RE.test(pathname) && localStorage.getItem(RULES_ACK_KEY) !== "yes") {
+    if (ROOM_PATH_RE.test(pathname) && !hasAcknowledgment(RULES_ACK_KEY)) {
       setStage("rules");
     } else {
       setStage(null);
@@ -88,7 +108,7 @@ export function FirstUseSafetyGate() {
   }
 
   function acceptRules() {
-    localStorage.setItem(RULES_ACK_KEY, "yes");
+    rememberAcknowledgment(RULES_ACK_KEY);
     setStage(null);
   }
 
