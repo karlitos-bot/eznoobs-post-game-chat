@@ -16,10 +16,11 @@ function check(condition, label) {
 
 const realtimeLayer = read('src/components/eznoobs/SecureRealtimeLayer.tsx');
 const room = read('src/routes/room.$code.tsx');
+const rootRoute = read('src/routes/__root.tsx');
+const firstUseGate = read('src/components/eznoobs/FirstUseSafetyGate.tsx');
 const doxxing = read('supabase/migrations/20260820114500_expand_doxxing_detection.sql');
 const lifetime = read('supabase/migrations/20260821043500_configurable_seven_to_ten_minute_lifetime.sql');
-const lifetimeServer = read('src/lib/lobby-lifetime.functions.ts');
-const keepItGoing = read('src/components/eznoobs/KeepItGoingButton.tsx');
+const activityLifetime = read('supabase/migrations/20260821050000_activity_driven_lobby_extension.sql');
 
 check(realtimeLayer.includes('fastAttempts < 8'), 'Realtime keeps bounded fast reconnect retries');
 check(realtimeLayer.includes('30_000'), 'Realtime falls back to low-frequency background token retries');
@@ -43,23 +44,32 @@ check(doxxing.includes("position(' address ' in v_padded) > 0") && doxxing.inclu
 check(doxxing.includes("position(' discord ' in v_padded) > 0") && doxxing.includes("@[a-z0-9._-]{2,32}"), 'Explicit social/contact handle sharing uses whole-word service matching');
 check(doxxing.includes("out_category := 'personal_data'"), 'Expanded doxxing patterns use the personal_data moderation category');
 
-check(lifetime.includes("('lobby_duration_minutes', 7)"), 'Default lobby lifetime is configured to 7 minutes');
-check(lifetime.includes("('lobby_max_duration_minutes', 10)"), 'Absolute lobby lifetime cap is configured to 10 minutes');
+check(lifetime.includes("('lobby_duration_minutes', 7)"), 'Default lobby lifetime remains 7 minutes');
+check(lifetime.includes("('lobby_max_duration_minutes', 10)"), 'Absolute lobby lifetime cap remains 10 minutes');
 check(lifetime.includes('NEW.expires_at := NEW.created_at + make_interval(mins => private.lobby_duration_minutes())'), 'Room creation uses the configurable base lifetime');
-check(lifetime.includes('GREATEST(OLD.expires_at, COALESCE(NEW.expires_at, OLD.expires_at))'), 'Ordinary activity updates cannot shorten/reset the expiry clock');
-check(lifetime.includes('v_max_expires_at') && lifetime.includes('private.lobby_max_duration_minutes()'), 'Explicit expiry changes are clamped to the configured max lifetime');
-check(lifetime.includes('CREATE OR REPLACE FUNCTION public.extend_lobby'), 'Credentialed lobby-extension RPC exists');
-check(lifetime.includes('private.guest_secret_matches(v_lobby.id, p_guest_id, p_guest_secret)'), 'Lobby extension validates the joined guest secret');
-check(lifetime.includes("private.consume_rate_limit(p_guest_id, 'extend_lobby', 10, 3, 600, 10)"), 'Lobby extension attempts are rate limited');
-check(lifetime.includes("'can_extend', v_lobby.expires_at <"), 'Secure lobby snapshot exposes only the derived can_extend capability');
-check(lifetime.includes('GRANT EXECUTE ON FUNCTION public.extend_lobby(text, text, text) TO anon'), 'Anonymous browser role can invoke only the credential-checked extension RPC');
+check(lifetime.includes('v_max_expires_at') && lifetime.includes('private.lobby_max_duration_minutes()'), 'All explicit expiry changes remain clamped to the configured max lifetime');
 
-check(lifetimeServer.includes('splitGuestCredential(data.guestId)'), 'Extension server action splits the full browser credential server-side');
-check(lifetimeServer.includes('"Could not extend lobby time."'), 'Extension server action masks unexpected backend errors');
-check(keepItGoing.includes('Keep it going +3 min'), 'Extension UI communicates the three-minute extension');
-check(keepItGoing.includes('10 min max'), 'Extension UI communicates the absolute 10-minute cap');
-check(realtimeLayer.includes('<KeepItGoingButton'), 'Joined room layer mounts the Keep It Going control');
-check(realtimeLayer.includes('Boolean(snapshot.lobby.can_extend)'), 'Extension UI derives capability from the credential-protected snapshot');
+check(activityLifetime.includes("('lobby_activity_extension_window_minutes', 2)"), 'Meaningful activity extends only in the final two-minute window');
+check(activityLifetime.includes("('lobby_activity_extension_minutes', 1)"), 'Each meaningful activity extension adds only one minute');
+check(activityLifetime.includes('CREATE OR REPLACE FUNCTION private.record_meaningful_lobby_activity'), 'Meaningful activity is centralized in a private database function');
+check(activityLifetime.includes("v_lobby.expires_at - now()") && activityLifetime.includes('private.lobby_activity_extension_window_minutes()'), 'Activity helper checks the remaining-time window');
+check(activityLifetime.includes('LEAST(') && activityLifetime.includes('private.lobby_max_duration_minutes()'), 'Activity helper cannot extend beyond the 10-minute cap');
+check((activityLifetime.match(/PERFORM private\.record_meaningful_lobby_activity\(v_lobby_id\)/g) ?? []).length === 3, 'Messages, reactions and Runback votes are the three extension-producing actions');
+check(!activityLifetime.includes('CREATE OR REPLACE FUNCTION public.touch_presence'), 'Presence heartbeats are not an extension-producing action');
+check(activityLifetime.includes('DROP FUNCTION IF EXISTS public.extend_lobby(text, text, text)'), 'Old manual lobby extension RPC is removed');
+check(!fs.existsSync(path.join(root, 'src/components/eznoobs/KeepItGoingButton.tsx')), 'Manual Keep It Going button is removed');
+check(!fs.existsSync(path.join(root, 'src/lib/lobby-lifetime.functions.ts')), 'Manual extension server action is removed');
+check(!realtimeLayer.includes('KeepItGoingButton'), 'Realtime layer no longer mounts a manual extension UI');
+
+check(firstUseGate.includes('eznoobs:adult-ack:v1'), '18+ acknowledgment is remembered locally');
+check(firstUseGate.includes('eznoobs:rules-ack:v1'), 'Lobby rules acknowledgment is remembered locally');
+check(firstUseGate.includes('I confirm that I am 18 years old or older.'), '18+ gate requires explicit self-attestation');
+check(firstUseGate.includes('No hate/slurs targeting race, sex, religion or identity.'), 'Rules reminder states the protected-class hate boundary');
+check(firstUseGate.includes('No threats, doxxing, or personal contact/location information.'), 'Rules reminder states the threats/doxxing boundary');
+check(firstUseGate.includes('localStorage.setItem(ADULT_ACK_KEY, "yes")'), '18+ acknowledgment is browser-local and persistent');
+check(firstUseGate.includes('localStorage.setItem(RULES_ACK_KEY, "yes")'), 'Rules acknowledgment is browser-local and persistent');
+check(firstUseGate.includes('ROOM_PATH_RE.test(pathname)'), 'Rules reminder is scoped to first lobby entry');
+check(rootRoute.includes('<FirstUseSafetyGate />'), 'First-use safety gate is mounted globally');
 
 if (failures.length) {
   console.error(`\nEZNOOBS beta-hardening regression check FAILED (${failures.length})`);
