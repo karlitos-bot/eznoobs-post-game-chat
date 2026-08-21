@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import accessibilityCss from "../accessibility.css?url";
 import appCss from "../styles.css?url";
 import mobileQaCss from "../mobile-qa.css?url";
+import phaseABatch2Css from "../phase-a-batch2.css?url";
 import phaseAPolishCss from "../phase-a-polish.css?url";
 import { AccessibilityLayer } from "@/components/eznoobs/AccessibilityLayer";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
@@ -20,6 +21,7 @@ import { HomeLivePreview } from "@/components/eznoobs/HomeLivePreview";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
+import { RoomExperienceLayer } from "@/components/eznoobs/RoomExperienceLayer";
 import { RoomExpiryGuard } from "@/components/eznoobs/RoomExpiryGuard";
 import { SecureRealtimeLayer } from "@/components/eznoobs/SecureRealtimeLayer";
 import { Toaster } from "@/components/ui/sonner";
@@ -129,6 +131,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: phaseAPolishCss,
       },
+      {
+        rel: "stylesheet",
+        href: phaseABatch2Css,
+      },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -172,6 +178,7 @@ function RootComponent() {
       <SecureRealtimeLayer />
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
+      <RoomExperienceLayer />
       <LobbyShowtimeLayer />
       <RoomExpiryGuard />
       <FirstUseSafetyGate />
