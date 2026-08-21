@@ -37,13 +37,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Create a five-minute post-game chat lobby, share a 5-character code, and keep the trash talk going after the match ends. No account needed.",
+          "Create a 7-minute post-game chat lobby, share a 5-character code, and keep active conversations going for up to 10 minutes. No account needed.",
       },
       { property: "og:title", content: "EZNOOBS — The match ended. The lobby didn't." },
       {
         property: "og:description",
         content:
-          "Five-minute post-game lobbies for GGs, trash talk, rematches and unfinished business.",
+          "Temporary post-game lobbies for GGs, trash talk, rematches and unfinished business. 7-minute base, up to 10 when the room stays active.",
       },
       { property: "og:image", content: "/eznoobs-logo.webp" },
       { name: "twitter:image", content: "/eznoobs-logo.webp" },
@@ -147,7 +147,7 @@ function Home() {
                     </span>
                     <span className="hidden h-3 w-px bg-border sm:block" />
                     <span className="hud-label hidden sm:inline">
-                      No signup · Five minutes · No waiting
+                      No signup · 7 min base · Up to 10
                     </span>
                   </div>
                   <p className="display mt-2 text-xl tracking-[0.03em] text-foreground sm:text-2xl">
@@ -167,8 +167,8 @@ function Home() {
               </h1>
 
               <p className="mt-7 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Open a five-minute post-game room, drop the code in match chat, and keep the GGs,
-                trash talk and rematch energy moving.
+                Open a 7-minute post-game room, drop the code in match chat, and keep the GGs,
+                trash talk and rematch energy moving. Active rooms can stay open up to 10 minutes.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -181,7 +181,7 @@ function Home() {
                 <div className="flex min-h-11 items-center border border-border bg-surface/55 px-4 py-3">
                   <Timer className="mr-2 size-4 text-primary" />
                   <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
-                    Five-minute showdown
+                    7 min base · up to 10
                   </span>
                 </div>
               </div>
@@ -217,7 +217,7 @@ function Home() {
                 <Zap className="mt-1 size-5 text-primary" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Pick the game, your name and your side. The room closes five minutes after creation.
+                Pick the game, your name and your side. Rooms start at 7 minutes and active conversations can stay open up to 10.
               </p>
             </div>
 
@@ -365,7 +365,7 @@ function Home() {
           <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
             <div>
               <p className="hud-label text-primary">What is EZNOOBS?</p>
-              <h2 className="mt-1 text-3xl">The five minutes after GG</h2>
+              <h2 className="mt-1 text-3xl">The room after GG</h2>
             </div>
             <p className="max-w-xl text-sm leading-6 text-muted-foreground">
               No server. No account. No permanent history. Make a room after the match, drop the code, talk your talk, vote for the runback, then the lobby disappears.
@@ -374,7 +374,7 @@ function Home() {
           <div className="grid gap-px bg-border/70 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["01", "Finish match", "The scoreboard closes."],
-              ["02", "Create lobby", "EZNOOBS starts the five-minute clock."],
+              ["02", "Create lobby", "EZNOOBS starts the 7-minute clock."],
               ["03", "Drop the code", "Both teams can jump straight in."],
               ["04", "Keep talking", "GGs, salt, reactions and runback votes."],
             ].map(([number, title, text]) => (
@@ -402,7 +402,7 @@ function Home() {
             {
               icon: ShieldCheck,
               title: "Temporary on purpose",
-              text: "Five minutes from creation. No activity resets the clock and the room clears when time is up.",
+              text: "Rooms start at 7 minutes. Meaningful activity can keep them open up to a hard 10-minute cap.",
             },
           ].map(({ icon: Icon, title, text }) => (
             <article key={title} className="bg-background/85 p-5 sm:p-6">
@@ -424,7 +424,7 @@ function Home() {
           <p className="hud-label">Trash talk responsibly.</p>
           <div className="flex items-center gap-4">
             <span className="hud-label">No account</span>
-            <span className="hud-label">5 minutes</span>
+            <span className="hud-label">7 min base · 10 max</span>
             <span className="hud-label text-primary">Gamer-first</span>
           </div>
         </div>
