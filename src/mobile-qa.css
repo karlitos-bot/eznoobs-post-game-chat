@@ -1,0 +1,182 @@
+/* EZNOOBS P1 #9 — mobile QA hardening.
+ * Keep this stylesheet structural and CSS-only: no extra DOM observers or runtime layout layer.
+ */
+
+@media (max-width: 639px) {
+  html,
+  body {
+    min-width: 0;
+    min-height: 100dvh;
+  }
+
+  /* Homepage: preserve the oversized identity without forcing 64px text on 320px phones. */
+  body:has(#create-lobby) {
+    overflow-x: hidden;
+  }
+
+  body:has(#create-lobby) > div > header > div,
+  body:has(#create-lobby) main {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  body:has(#create-lobby) main h1 {
+    font-size: clamp(3.1rem, 16vw, 4rem);
+    line-height: 0.82;
+  }
+
+  body:has(#create-lobby) #create-lobby {
+    min-width: 0;
+  }
+
+  body:has(#create-lobby) #create-lobby fieldset,
+  body:has(#create-lobby) #create-lobby form,
+  body:has(#create-lobby) #create-lobby input,
+  body:has(#create-lobby) #create-lobby button {
+    min-width: 0;
+  }
+
+  /* Join / missing-room panels: fit the dynamic mobile viewport and never clip behind browser UI. */
+  body:not(:has(#create-lobby)):not(:has(.composer-shell)) form.ez-panel-strong,
+  body:not(:has(#create-lobby)):not(:has(.composer-shell)) .ez-panel.corner-cut {
+    max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(1.5rem, env(safe-area-inset-bottom)));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Live room: dynamic viewport, safe-area sides and no page-level rubber-band behind chat. */
+  body:has(.composer-shell) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body:has(.composer-shell) header > div:first-child {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-top: max(0.625rem, env(safe-area-inset-top));
+  }
+
+  body:has(.composer-shell) header a[aria-label="EZNOOBS home"] img {
+    max-width: 5.4rem;
+  }
+
+  body:has(.composer-shell) .composer-shell {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    overscroll-behavior: contain;
+  }
+
+  body:has(.composer-shell) .composer-shell textarea {
+    scroll-margin-bottom: max(5rem, env(safe-area-inset-bottom));
+  }
+
+  body:has(.composer-shell) .message-card,
+  body:has(.composer-shell) .message-body {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  body:has(.composer-shell) .reaction-rail {
+    gap: 0.35rem;
+  }
+
+  body:has(.composer-shell) .reaction-chip {
+    min-height: 2.5rem !important;
+    min-width: 2.5rem !important;
+  }
+
+  /* Give the roster drawer a useful dismiss target even on a 320px viewport. */
+  body:has(.composer-shell) .mobile-safe-top.mobile-safe-bottom {
+    width: min(82vw, 18rem) !important;
+  }
+
+  /* Internal operator pages are usable from a phone in an emergency. */
+  body:has(a[href="/ops/moderation"]) main,
+  body:has(a[href="/ops/enforcement"]) main {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  body:has(a[href="/ops/moderation"]) header > div,
+  body:has(a[href="/ops/enforcement"]) header > div {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  body:has(a[href="/ops/moderation"]) article,
+  body:has(a[href="/ops/enforcement"]) article {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Legal pages: avoid edge clipping around notches and long policy text. */
+  body:has(nav[aria-label="Legal pages"]) header > div,
+  body:has(nav[aria-label="Legal pages"]) main,
+  body:has(nav[aria-label="Legal pages"]) footer > div {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  body:has(nav[aria-label="Legal pages"]) h1,
+  body:has(nav[aria-label="Legal pages"]) h2,
+  body:has(nav[aria-label="Legal pages"]) p,
+  body:has(nav[aria-label="Legal pages"]) li {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 389px) {
+  /* The primary room bar carries timer + code + roster; reclaim space without hiding controls. */
+  body:has(.composer-shell) header > div:first-child {
+    gap: 0.35rem;
+  }
+
+  body:has(.composer-shell) header a[aria-label="EZNOOBS home"] img {
+    max-width: 4.4rem;
+  }
+
+  body:has(.composer-shell) header button[aria-label^="Open player list"] {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+  }
+
+  body:has(.composer-shell) header button[aria-label="Invite players to this lobby"] {
+    min-width: 44px;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  body:has(.composer-shell) header button[aria-label="Invite players to this lobby"] > span {
+    display: none;
+  }
+
+  body:has(.composer-shell) .message-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.62rem;
+  }
+
+  body:has(.composer-shell) .message-card > div {
+    gap: 0.55rem;
+  }
+
+  body:has(#create-lobby) header .font-mono {
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (max-width: 339px) {
+  body:has(.composer-shell) header a[aria-label="EZNOOBS home"] {
+    display: none;
+  }
+
+  body:has(.composer-shell) header > div:first-child {
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+
+  body:has(#create-lobby) main h1 {
+    font-size: 2.85rem;
+  }
+}
