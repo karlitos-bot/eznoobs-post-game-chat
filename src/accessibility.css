@@ -1,0 +1,112 @@
+/* EZNOOBS P1 #10 — accessibility hardening. */
+
+.ez-skip-link {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: max(0.5rem, env(safe-area-inset-left));
+  z-index: 250;
+  min-height: 44px;
+  transform: translateY(calc(-100% - 1rem));
+  border: 2px solid var(--primary);
+  background: var(--background);
+  padding: 0.65rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  box-shadow: 0 8px 28px color-mix(in oklab, black 38%, transparent);
+  transition: transform 140ms ease;
+}
+
+.ez-skip-link:focus,
+.ez-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+summary:focus-visible,
+[role="tab"]:focus-visible,
+[aria-pressed]:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 78%, white 8%);
+  outline-offset: 2px;
+}
+
+/* Keep disabled controls distinguishable without relying only on color. */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted-foreground: oklch(0.76 0.015 260);
+    --border: oklch(0.43 0.018 260);
+  }
+
+  .hud-label,
+  .text-muted-foreground {
+    opacity: 1 !important;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    text-decoration-thickness: 0.12em;
+  }
+}
+
+@media (forced-colors: active) {
+  .ez-skip-link,
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="dialog"],
+  .message-card,
+  .ez-panel,
+  .ez-panel-strong {
+    forced-color-adjust: auto;
+  }
+
+  .ez-skip-link,
+  button,
+  input,
+  select,
+  textarea,
+  [role="dialog"],
+  .message-card,
+  .ez-panel,
+  .ez-panel-strong {
+    border: 1px solid CanvasText !important;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid Highlight !important;
+    outline-offset: 2px !important;
+  }
+
+  [aria-pressed="true"],
+  [aria-current="page"] {
+    outline: 2px solid Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ez-skip-link {
+    transition: none;
+  }
+}
