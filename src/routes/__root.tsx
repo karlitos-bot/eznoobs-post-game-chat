@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import accessibilityCss from "../accessibility.css?url";
 import appCss from "../styles.css?url";
 import mobileQaCss from "../mobile-qa.css?url";
+import phaseAPolishCss from "../phase-a-polish.css?url";
 import { AccessibilityLayer } from "@/components/eznoobs/AccessibilityLayer";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
 import { HomeLegalNav } from "@/components/eznoobs/HomeLegalNav";
@@ -122,6 +123,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: accessibilityCss,
+      },
+      {
+        rel: "stylesheet",
+        href: phaseAPolishCss,
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
