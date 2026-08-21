@@ -30,6 +30,13 @@ function TermsOfService() {
           ],
         },
         {
+          title: "Agreement to these terms",
+          body: [
+            "When the first-use screen asks you to confirm that you are 18 or older and agree to these Terms of Service, selecting that confirmation and continuing means you agree to these terms for the current beta service. If you do not agree, do not continue into EZNOOBS rooms.",
+            "The Privacy Policy explains how the service handles data, and the Community Rules form part of these terms.",
+          ],
+        },
+        {
           title: "Using the service",
           body: [
             "You may use EZNOOBS for temporary post-game communication, reactions, rematch coordination and related social interaction. You are responsible for the content you submit and for using the service lawfully.",
@@ -90,6 +97,12 @@ function TermsOfService() {
           title: "Changes to these terms",
           body: [
             "These terms may change as the beta evolves. Material updates will be reflected by changing the Last updated date on this page. Continued use after an update means you agree to the revised terms to the extent permitted by applicable law.",
+          ],
+        },
+        {
+          title: "Operator and contact before wider launch",
+          body: [
+            "EZNOOBS is still being prepared for wider public beta. A dedicated operator/support/privacy contact method and any jurisdiction-specific notices required for the intended launch markets will be published before that broader release. This beta document should receive qualified legal review before commercial or large-scale launch.",
           ],
         },
       ]}
