@@ -1,14 +1,50 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Flame, Sparkles, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 const GAME_OPENERS: Record<string, string[]> = {
-  "Counter-Strike 2": ["GG", "WHO WHIFFED?", "CT DIFF?", "RUN IT BACK", "ONE MORE."],
-  "League of Legends": ["GG", "JUNGLE DIFF?", "FF15?", "RUN IT BACK", "ONE MORE."],
-  Valorant: ["GG", "INSTALOCK DIFF?", "AIM DIFF?", "RUN IT BACK", "ONE MORE."],
-  "Rocket League": ["GG", "WHAT A SAVE!", "TEAM DIFF?", "RUN IT BACK", "ONE MORE."],
-  "Overwatch 2": ["GG", "TANK DIFF?", "SUPPORT DIFF?", "RUN IT BACK", "ONE MORE."],
-  "Marvel Rivals": ["GG", "HERO DIFF?", "TEAM DIFF?", "RUN IT BACK", "ONE MORE."],
+  "Counter-Strike 2": [
+    "GG",
+    "WHO WHIFFED?",
+    "CT DIFF?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
+  "League of Legends": [
+    "GG",
+    "JUNGLE DIFF?",
+    "FF15?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
+  Valorant: [
+    "GG",
+    "INSTALOCK DIFF?",
+    "AIM DIFF?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
+  "Rocket League": [
+    "GG",
+    "WHAT A SAVE!",
+    "TEAM DIFF?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
+  "Overwatch 2": [
+    "GG",
+    "TANK DIFF?",
+    "SUPPORT DIFF?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
+  "Marvel Rivals": [
+    "GG",
+    "HERO DIFF?",
+    "TEAM DIFF?",
+    "RUN IT BACK",
+    "ONE MORE.",
+  ],
   Other: ["GG", "WHO THREW?", "EZ?", "RUN IT BACK", "ONE MORE."],
 };
 
@@ -39,7 +75,9 @@ function decorateAvatar(avatar: HTMLElement, identity: string) {
 function decorateMessage(card: HTMLElement) {
   const avatar = card.querySelector<HTMLElement>(".message-avatar");
   if (!avatar) return;
-  const nickname = card.querySelector<HTMLElement>("span.font-mono.text-xs.font-semibold")?.textContent?.trim();
+  const nickname = card
+    .querySelector<HTMLElement>("span.font-mono.text-xs.font-semibold")
+    ?.textContent?.trim();
   if (nickname) decorateAvatar(avatar, nickname);
   card.dataset.ezTeam = teamFromAvatar(avatar);
 }
@@ -48,7 +86,12 @@ function decoratePlayer(row: HTMLElement, recent = false) {
   const avatar = row.querySelector<HTMLElement>("span[class*='size-7']");
   if (!avatar) return;
   const nickname = Array.from(row.children)
-    .find((child) => child instanceof HTMLElement && child !== avatar && child.classList.contains("truncate"))
+    .find(
+      (child) =>
+        child instanceof HTMLElement &&
+        child !== avatar &&
+        child.classList.contains("truncate"),
+    )
     ?.textContent?.replace(/you$/i, "")
     .trim();
   if (nickname) decorateAvatar(avatar, nickname);
@@ -61,16 +104,27 @@ function decoratePlayer(row: HTMLElement, recent = false) {
 }
 
 function decorateExisting(root: ParentNode, recentPlayers = false) {
-  if (root instanceof HTMLElement && root.matches(".message-card")) decorateMessage(root);
-  if (root instanceof HTMLElement && root.matches(".player-row")) decoratePlayer(root, recentPlayers);
+  if (root instanceof HTMLElement && root.matches(".message-card")) {
+    decorateMessage(root);
+  }
+  if (root instanceof HTMLElement && root.matches(".player-row")) {
+    decoratePlayer(root, recentPlayers);
+  }
   root.querySelectorAll<HTMLElement>(".message-card").forEach(decorateMessage);
-  root.querySelectorAll<HTMLElement>(".player-row").forEach((row) => decoratePlayer(row, recentPlayers));
+  root
+    .querySelectorAll<HTMLElement>(".player-row")
+    .forEach((row) => decoratePlayer(row, recentPlayers));
 }
 
 function prefillComposer(text: string) {
-  const textarea = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+  const textarea = document.querySelector<HTMLTextAreaElement>(
+    'textarea[aria-label="Message"]',
+  );
   if (!textarea || textarea.disabled) return;
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    "value",
+  )?.set;
   setter?.call(textarea, text);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
   textarea.focus({ preventScroll: true });
@@ -86,7 +140,9 @@ function readGame() {
 
 export function RoomExperienceLayer() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isRoom = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/i.test(pathname);
+  const isRoom = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/i.test(
+    pathname,
+  );
   const [game, setGame] = useState("Other");
   const [showQuickFire, setShowQuickFire] = useState(false);
   const [nuclearBurst, setNuclearBurst] = useState(false);
@@ -110,15 +166,23 @@ export function RoomExperienceLayer() {
         const nextGame = readGame();
         setGame((current) => (current === nextGame ? current : nextGame));
 
-        const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+        const composer = document.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Message"]',
+        );
         const hasMessages = Boolean(document.querySelector(".message-card"));
         setShowQuickFire(Boolean(composer && !composer.disabled && !hasMessages));
 
-        const saltNode = document.querySelector<HTMLElement>("[data-salt-level]");
+        const saltNode =
+          document.querySelector<HTMLElement>("[data-salt-level]");
         const salt = saltNode?.dataset.saltLevel ?? null;
         if (salt) document.documentElement.dataset.ezSalt = salt;
 
-        if (salt && previousSalt.current && previousSalt.current !== "NUCLEAR" && salt === "NUCLEAR") {
+        if (
+          salt &&
+          previousSalt.current &&
+          previousSalt.current !== "NUCLEAR" &&
+          salt === "NUCLEAR"
+        ) {
           setNuclearBurst(true);
           if (nuclearTimer.current) clearTimeout(nuclearTimer.current);
           nuclearTimer.current = setTimeout(() => setNuclearBurst(false), 1700);
@@ -133,7 +197,10 @@ export function RoomExperienceLayer() {
     const observer = new MutationObserver((mutations) => {
       let shouldSync = false;
       for (const mutation of mutations) {
-        if (mutation.type === "attributes" && mutation.attributeName === "data-salt-level") {
+        if (
+          mutation.type === "attributes" &&
+          mutation.attributeName === "data-salt-level"
+        ) {
           shouldSync = true;
           continue;
         }
@@ -142,13 +209,18 @@ export function RoomExperienceLayer() {
           decorateExisting(node, true);
           if (
             node.matches(".message-card, header, form") ||
-            node.querySelector(".message-card, header, textarea[aria-label='Message']")
+            node.querySelector(
+              ".message-card, header, textarea[aria-label='Message']",
+            )
           ) {
             shouldSync = true;
           }
         }
         for (const node of mutation.removedNodes) {
-          if (node instanceof HTMLElement && (node.matches(".message-card") || node.querySelector(".message-card"))) {
+          if (
+            node instanceof HTMLElement &&
+            (node.matches(".message-card") || node.querySelector(".message-card"))
+          ) {
             shouldSync = true;
           }
         }
@@ -178,7 +250,11 @@ export function RoomExperienceLayer() {
   return (
     <>
       {showQuickFire && (
-        <div className="ez-quickfire" role="group" aria-label={`${game} quick chat suggestions`}>
+        <div
+          className="ez-quickfire"
+          role="group"
+          aria-label={`${game} quick chat suggestions`}
+        >
           <div className="ez-quickfire-heading" aria-hidden="true">
             <Sparkles className="size-3.5" />
             <span>Opening shots</span>
@@ -191,9 +267,11 @@ export function RoomExperienceLayer() {
                 type="button"
                 onClick={() => prefillComposer(opener)}
                 className="ez-quickfire-chip"
-                style={{ "--ez-chip-index": index } as React.CSSProperties}
+                style={{ "--ez-chip-index": index } as CSSProperties}
               >
-                {opener === "RUN IT BACK" ? <Zap className="size-3" aria-hidden="true" /> : null}
+                {opener === "RUN IT BACK" ? (
+                  <Zap className="size-3" aria-hidden="true" />
+                ) : null}
                 {opener}
               </button>
             ))}
@@ -202,12 +280,18 @@ export function RoomExperienceLayer() {
       )}
 
       {nuclearBurst && (
-        <div className="ez-nuclear-moment pointer-events-none fixed inset-0 z-[78] flex items-center justify-center" role="status" aria-live="polite">
+        <div
+          className="ez-nuclear-moment pointer-events-none fixed inset-0 z-[78] flex items-center justify-center"
+          role="status"
+          aria-live="polite"
+        >
           <div className="ez-nuclear-flash" />
           <div className="ez-nuclear-card">
             <div className="ez-nuclear-mark" aria-hidden="true" />
             <div>
-              <span><Flame className="size-3.5" /> SALT LEVEL</span>
+              <span>
+                <Flame className="size-3.5" /> SALT LEVEL
+              </span>
               <strong>NUCLEAR</strong>
               <p>Lobby temperature critical.</p>
             </div>
