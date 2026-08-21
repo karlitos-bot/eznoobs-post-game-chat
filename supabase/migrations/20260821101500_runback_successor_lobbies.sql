@@ -114,12 +114,12 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT p.nickname, p.team, p.guest_secret_hash
+  SELECT p.nickname, p.team
   INTO v_creator
   FROM public.participants p
   WHERE p.lobby_id = v_old_lobby.id
     AND p.guest_id = p_guest_id
-    AND p.guest_secret_hash = encode(extensions.digest(p_guest_secret, 'sha256'), 'hex');
+    AND private.guest_secret_matches(v_old_lobby.id, p_guest_id, p_guest_secret);
 
   IF NOT FOUND THEN
     out_ok := false;
@@ -132,16 +132,25 @@ BEGIN
   FOR v_attempt IN 1..8 LOOP
     v_new_code := public.generate_room_code();
     BEGIN
-      INSERT INTO public.lobbies (code, game)
-      VALUES (v_new_code, v_old_lobby.game)
+      INSERT INTO public.lobbies (code, game, max_players)
+      VALUES (v_new_code, v_old_lobby.game, private.default_lobby_capacity(v_old_lobby.game))
       RETURNING id INTO v_new_lobby_id;
 
       -- Only the creator is pre-joined. Other players keep their own browser secret
       -- and join the successor normally, so enforcement checks remain intact.
       INSERT INTO public.participants
-        (lobby_id, guest_id, guest_secret_hash, nickname, team, last_seen_at)
+        (lobby_id, guest_id, nickname, team, last_seen_at)
       VALUES
-        (v_new_lobby_id, p_guest_id, v_creator.guest_secret_hash, v_creator.nickname, v_creator.team, now());
+        (v_new_lobby_id, p_guest_id, v_creator.nickname, v_creator.team, now());
+
+      INSERT INTO private.participant_credentials
+        (lobby_id, guest_id, guest_secret_hash)
+      VALUES
+        (
+          v_new_lobby_id,
+          p_guest_id,
+          encode(extensions.digest(p_guest_secret, 'sha256'), 'hex')
+        );
 
       INSERT INTO private.runback_links
         (old_lobby_id, new_lobby_id, created_by_guest_id)
