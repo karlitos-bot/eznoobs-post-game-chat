@@ -52,7 +52,7 @@ const clarity = fs.readFileSync(
 for (const required of [
   "7 min base · up to 10",
   "Rooms start at 7 minutes",
-  "7 min base · 10 max",
+  "hard 10-minute cap",
 ]) {
   if (!home.includes(required)) failures.push(`homepage missing current lifetime copy: ${required}`);
 }
