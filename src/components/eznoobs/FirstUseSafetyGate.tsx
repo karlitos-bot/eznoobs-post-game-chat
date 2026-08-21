@@ -1,17 +1,17 @@
-import { useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { ShieldCheck, Skull, UserRoundCheck } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
-const ADULT_ACK_KEY = "eznoobs:adult-ack:v1";
+const LEGAL_ACK_KEY = "eznoobs:legal-ack:v2";
 const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
 const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
-const LEGAL_PATHS = new Set(["/community-rules", "/privacy", "/terms"]);
+const LEGAL_PATHS = new Set(["/legal", "/community-rules", "/privacy", "/terms"]);
 const INTERNAL_PATHS = new Set(["/ops/moderation", "/ops/enforcement"]);
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const memoryAcknowledgments = new Set<string>();
 
-type GateStage = "age" | "rules" | null;
+type GateStage = "legal" | "rules" | null;
 
 function hasAcknowledgment(key: string) {
   if (memoryAcknowledgments.has(key)) return true;
@@ -49,11 +49,11 @@ export function FirstUseSafetyGate() {
       return;
     }
 
-    const adultAccepted = hasAcknowledgment(ADULT_ACK_KEY);
+    const legalAccepted = hasAcknowledgment(LEGAL_ACK_KEY);
     const rulesAccepted = hasAcknowledgment(RULES_ACK_KEY);
 
-    if (!adultAccepted) {
-      setStage("age");
+    if (!legalAccepted) {
+      setStage("legal");
     } else if (ROOM_PATH_RE.test(pathname) && !rulesAccepted) {
       setStage("rules");
     } else {
@@ -103,9 +103,9 @@ export function FirstUseSafetyGate() {
     }
   }
 
-  function acceptAge() {
+  function acceptLegal() {
     if (!checked) return;
-    rememberAcknowledgment(ADULT_ACK_KEY);
+    rememberAcknowledgment(LEGAL_ACK_KEY);
     setChecked(false);
 
     if (ROOM_PATH_RE.test(pathname) && !hasAcknowledgment(RULES_ACK_KEY)) {
@@ -135,20 +135,20 @@ export function FirstUseSafetyGate() {
       >
         <div className="pointer-events-none absolute inset-0 micro-grid opacity-15" />
         <div className="relative">
-          {stage === "age" ? (
+          {stage === "legal" ? (
             <>
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
-                  <UserRoundCheck className="size-5" />
+                  <UserRoundCheck className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="hud-label text-primary">One-time check</p>
-                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">18+ only</h2>
+                  <p className="hud-label text-primary">One-time beta check</p>
+                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">18+ · Know the rules</h2>
                 </div>
               </div>
 
               <p id="eznoobs-first-use-description" className="mt-5 text-sm leading-6 text-muted-foreground">
-                EZNOOBS is intended for adults. Confirm that you are 18 or older to continue.
+                EZNOOBS is an adults-only beta built for temporary post-game chat. Review the terms and safety information before continuing.
               </p>
 
               <label className="mt-5 flex cursor-pointer items-start gap-3 border border-border bg-surface/35 p-3 text-sm text-foreground">
@@ -158,23 +158,31 @@ export function FirstUseSafetyGate() {
                   onChange={(event) => setChecked(event.target.checked)}
                   className="mt-0.5 size-4 accent-[hsl(var(--primary))]"
                 />
-                <span>I confirm that I am 18 years old or older.</span>
+                <span>I confirm that I am 18 years old or older and agree to the Terms of Service.</span>
               </label>
+
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Read the{" "}
+                <Link to="/terms" className="text-primary underline-offset-4 hover:underline">Terms of Service</Link>,{" "}
+                <Link to="/privacy" className="text-primary underline-offset-4 hover:underline">Privacy Policy</Link>, and{" "}
+                <Link to="/community-rules" className="text-primary underline-offset-4 hover:underline">Community Rules</Link>.
+                These pages remain available before you agree.
+              </p>
 
               <button
                 type="button"
                 disabled={!checked}
-                onClick={acceptAge}
+                onClick={acceptLegal}
                 className="tactical-button mt-5 flex min-h-12 w-full items-center justify-center bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-35"
               >
-                Continue to EZNOOBS
+                Agree & continue
               </button>
             </>
           ) : (
             <>
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
-                  <ShieldCheck className="size-5" />
+                  <ShieldCheck className="size-5" aria-hidden="true" />
                 </span>
                 <div>
                   <p className="hud-label text-primary">Before you enter</p>
@@ -192,11 +200,11 @@ export function FirstUseSafetyGate() {
                   <span className="text-sm">Game trash talk, profanity and ordinary insults.</span>
                 </div>
                 <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
-                  <Skull className="size-4 shrink-0 text-destructive" />
+                  <Skull className="size-4 shrink-0 text-destructive" aria-hidden="true" />
                   <span className="text-sm">No hate/slurs targeting race, sex, religion or identity.</span>
                 </div>
                 <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
-                  <Skull className="size-4 shrink-0 text-destructive" />
+                  <Skull className="size-4 shrink-0 text-destructive" aria-hidden="true" />
                   <span className="text-sm">No threats, doxxing, or personal contact/location information.</span>
                 </div>
               </div>
@@ -217,6 +225,6 @@ export function FirstUseSafetyGate() {
 }
 
 export const FIRST_USE_STORAGE_KEYS = {
-  adult: ADULT_ACK_KEY,
+  legal: LEGAL_ACK_KEY,
   rules: RULES_ACK_KEY,
 } as const;
