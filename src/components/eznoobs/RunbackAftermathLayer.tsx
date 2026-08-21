@@ -1,5 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useRouterState } from "@tanstack/react-router";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { ArrowRight, Copy, Radio, Skull, Swords, Timer, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -75,7 +76,8 @@ function captureStats(previous: AftermathStats): AftermathStats {
       ? currentSalt
       : previous.peakSalt;
 
-  const runbackNode = main.querySelector<HTMLElement>(".runback-ready") ??
+  const runbackNode =
+    main.querySelector<HTMLElement>(".runback-ready") ??
     Array.from(main.querySelectorAll<HTMLElement>("div")).find((node) =>
       /want the runback|runback locked/i.test(node.textContent ?? ""),
     );
@@ -112,6 +114,7 @@ export function RunbackAftermathLayer() {
   });
   const lookedUp = useRef(false);
   const statsRef = useRef(stats);
+  const runbackChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     statsRef.current = stats;
@@ -138,10 +141,12 @@ export function RunbackAftermathLayer() {
         statsRef.current = nextStats;
         setStats(nextStats);
 
-        const isLocked = Boolean(main.querySelector(".runback-ready")) || /runback locked/i.test(main.textContent ?? "");
+        const isLocked =
+          Boolean(main.querySelector(".runback-ready")) || /runback locked/i.test(main.textContent ?? "");
         setLocked(isLocked);
 
-        const isExpired = /temporary chat cleared|lobby closed/i.test(main.textContent ?? "") &&
+        const isExpired =
+          /temporary chat cleared|lobby closed/i.test(main.textContent ?? "") &&
           Boolean(main.querySelector('textarea[aria-label="Message"]')?.hasAttribute("disabled"));
         if (isExpired) {
           setExpired(true);
@@ -155,7 +160,12 @@ export function RunbackAftermathLayer() {
     if (!main) return;
 
     const observer = new MutationObserver(sync);
-    observer.observe(main, { childList: true, subtree: true, characterData: true, attributes: true });
+    observer.observe(main, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+    });
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -175,9 +185,13 @@ export function RunbackAftermathLayer() {
   }, [code, locked, lookupRunback, runbackCode]);
 
   useEffect(() => {
-    if (!code || !realtimeToken) return;
+    if (!code || !realtimeToken) {
+      runbackChannelRef.current = null;
+      return;
+    }
+
     const channel = supabase
-      .channel(`${lobbyChannelName(code, realtimeToken)}:runback-ui`)
+      .channel(lobbyChannelName(code, realtimeToken))
       .on("broadcast", { event: "runback-room" }, (event) => {
         const nextCode = (event.payload as { code?: string } | undefined)?.code;
         if (/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/.test(nextCode ?? "")) {
@@ -185,9 +199,12 @@ export function RunbackAftermathLayer() {
           toast.success(`Runback room ${nextCode} is ready.`);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") runbackChannelRef.current = channel;
+      });
 
     return () => {
+      if (runbackChannelRef.current === channel) runbackChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
   }, [code, realtimeToken]);
@@ -205,15 +222,15 @@ export function RunbackAftermathLayer() {
       setRunbackCode(result.code);
       toast.success(`Runback room ${result.code} created.`);
 
-      if (realtimeToken) {
-        const channel = supabase.channel(`${lobbyChannelName(code, realtimeToken)}:runback-send`);
-        await channel.subscribe();
-        await channel.send({
-          type: "broadcast",
-          event: "runback-room",
-          payload: { code: result.code },
-        });
-        void supabase.removeChannel(channel);
+      const channel = runbackChannelRef.current;
+      if (channel) {
+        void channel
+          .send({
+            type: "broadcast",
+            event: "runback-room",
+            payload: { code: result.code },
+          })
+          .catch(() => {});
       }
     } catch {
       toast.error("Could not create the Runback room.");
@@ -242,7 +259,10 @@ export function RunbackAftermathLayer() {
   return (
     <>
       {locked && !expired && (
-        <aside className={`ez-runback-next ${runbackCode ? "ez-runback-next-ready" : ""}`} aria-label="Runback room">
+        <aside
+          className={`ez-runback-next ${runbackCode ? "ez-runback-next-ready" : ""}`}
+          aria-label="Runback room"
+        >
           <div className="ez-runback-next-icon" aria-hidden="true">
             <Swords className="size-4" />
           </div>
@@ -267,7 +287,8 @@ export function RunbackAftermathLayer() {
                 disabled={creating}
                 className="ez-runback-next-primary"
               >
-                {creating ? "CREATING…" : "CREATE RUNBACK"} <ArrowRight className="size-3.5" />
+                {creating ? "CREATING…" : "CREATE RUNBACK"}{" "}
+                <ArrowRight className="size-3.5" />
               </button>
             )}
           </div>
@@ -275,33 +296,64 @@ export function RunbackAftermathLayer() {
       )}
 
       {expired && showAftermath && (
-        <div className="ez-aftermath" role="dialog" aria-modal="true" aria-labelledby="ez-aftermath-title">
+        <div
+          className="ez-aftermath"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ez-aftermath-title"
+        >
           <div className="ez-aftermath-backdrop" />
           <section className="ez-aftermath-card">
             <div className="ez-aftermath-mascot" aria-hidden="true" />
             <div className="ez-aftermath-head">
               <div>
-                <span className="ez-aftermath-kicker"><Radio className="size-3.5" /> CHANNEL CLOSED</span>
+                <span className="ez-aftermath-kicker">
+                  <Radio className="size-3.5" /> CHANNEL CLOSED
+                </span>
                 <h2 id="ez-aftermath-title">MATCH AFTERMATH</h2>
                 <p>The room is gone. The damage report remains on this screen only.</p>
               </div>
-              <button type="button" className="ez-aftermath-close" onClick={() => setShowAftermath(false)}>
+              <button
+                type="button"
+                className="ez-aftermath-close"
+                onClick={() => setShowAftermath(false)}
+              >
                 VIEW CLOSED ROOM
               </button>
             </div>
 
             <div className="ez-aftermath-grid">
-              <article><span>MESSAGES</span><strong>{stats.messages}</strong><small>shots fired</small></article>
-              <article><span>REACTIONS</span><strong>{stats.reactions}</strong><small>crowd damage</small></article>
-              <article className={`ez-aftermath-salt ez-aftermath-salt-${stats.peakSalt.toLowerCase()}`}>
-                <span>PEAK SALT</span><strong>{stats.peakSalt}</strong><small>highest heat</small>
+              <article>
+                <span>MESSAGES</span>
+                <strong>{stats.messages}</strong>
+                <small>shots fired</small>
               </article>
-              <article><span>TOP REACTION</span><strong>{stats.topReaction}</strong><small>{stats.topReactionCount ? `×${stats.topReactionCount}` : "none landed"}</small></article>
+              <article>
+                <span>REACTIONS</span>
+                <strong>{stats.reactions}</strong>
+                <small>crowd damage</small>
+              </article>
+              <article
+                className={`ez-aftermath-salt ez-aftermath-salt-${stats.peakSalt.toLowerCase()}`}
+              >
+                <span>PEAK SALT</span>
+                <strong>{stats.peakSalt}</strong>
+                <small>highest heat</small>
+              </article>
+              <article>
+                <span>TOP REACTION</span>
+                <strong>{stats.topReaction}</strong>
+                <small>
+                  {stats.topReactionCount ? `×${stats.topReactionCount}` : "none landed"}
+                </small>
+              </article>
             </div>
 
             <div className="ez-aftermath-runback">
               <Swords className="size-4" />
-              <span>{runbackCode ? `RUNBACK ROOM ${runbackCode} IS READY` : stats.runback}</span>
+              <span>
+                {runbackCode ? `RUNBACK ROOM ${runbackCode} IS READY` : stats.runback}
+              </span>
             </div>
 
             <div className="ez-aftermath-actions">
@@ -320,7 +372,8 @@ export function RunbackAftermathLayer() {
             </div>
 
             <div className="ez-aftermath-foot">
-              <Skull className="size-3.5" /> Temporary by design · these stats are not a permanent match history.
+              <Skull className="size-3.5" /> Temporary by design · these stats are not a
+              permanent match history.
             </div>
           </section>
         </div>
