@@ -9,13 +9,8 @@ type MainRect = {
   height: number;
 };
 
-function hasExpiredSignal() {
-  const header = document.querySelector("header");
-  const headerNodes = header ? Array.from(header.querySelectorAll<HTMLElement>("span, div")) : [];
-  const timerAtZero = headerNodes.some((node) => node.textContent?.trim() === "0:00");
-  if (timerAtZero) return true;
-
-  return Array.from(document.querySelectorAll<HTMLElement>("main *")).some((node) => {
+function hasExpiredSignal(main: HTMLElement) {
+  return Array.from(main.querySelectorAll<HTMLElement>("div, p, h1, h2")).some((node) => {
     const text = (node.textContent ?? "").replace(/\s+/g, " ").trim().toUpperCase();
     return text === "TIME'S UP" || text.includes("LOBBY CLOSED · TEMPORARY CHAT CLEARED");
   });
@@ -35,48 +30,74 @@ export function RoomExpiryGuard() {
     }
 
     setExpired(false);
-    let frame = 0;
+    setMainRect(null);
 
-    const inspect = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const main = document.querySelector<HTMLElement>("main");
-        if (main) {
-          const rect = main.getBoundingClientRect();
-          const nextRect: MainRect = {
-            top: Math.round(rect.top),
-            left: Math.round(rect.left),
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-          };
-          setMainRect((current) =>
-            current &&
-            current.top === nextRect.top &&
-            current.left === nextRect.left &&
-            current.width === nextRect.width &&
-            current.height === nextRect.height
-              ? current
-              : nextRect,
-          );
-        }
+    let roomMain: HTMLElement | null = null;
+    let mountObserver: MutationObserver | null = null;
+    let expiryObserver: MutationObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
-        if (hasExpiredSignal()) setExpired(true);
-      });
+    const measureMain = () => {
+      if (!roomMain) return;
+      const rect = roomMain.getBoundingClientRect();
+      const nextRect: MainRect = {
+        top: Math.round(rect.top),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+      setMainRect((current) =>
+        current &&
+        current.top === nextRect.top &&
+        current.left === nextRect.left &&
+        current.width === nextRect.width &&
+        current.height === nextRect.height
+          ? current
+          : nextRect,
+      );
     };
 
-    inspect();
-    const observer = new MutationObserver(inspect);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    window.addEventListener("resize", inspect);
-    // DOM mutations already catch the live timer. Keep only a slow fallback for
-    // edge cases instead of polling layout twice per second for the whole room lifetime.
-    const fallback = window.setInterval(inspect, 2500);
+    const inspectExpiry = () => {
+      if (!roomMain || expired) return;
+      if (hasExpiredSignal(roomMain)) {
+        setExpired(true);
+        expiryObserver?.disconnect();
+        expiryObserver = null;
+      }
+    };
+
+    const attachToMain = (main: HTMLElement) => {
+      roomMain = main;
+      mountObserver?.disconnect();
+      mountObserver = null;
+      measureMain();
+      inspectExpiry();
+
+      resizeObserver = new ResizeObserver(measureMain);
+      resizeObserver.observe(main);
+
+      if (!hasExpiredSignal(main)) {
+        expiryObserver = new MutationObserver(inspectExpiry);
+        expiryObserver.observe(main, { childList: true, subtree: true, characterData: true });
+      }
+    };
+
+    const findMain = () => {
+      const main = document.querySelector<HTMLElement>("main");
+      if (!main || roomMain === main) return Boolean(main);
+      attachToMain(main);
+      return true;
+    };
+
+    if (!findMain()) {
+      mountObserver = new MutationObserver(findMain);
+      mountObserver.observe(document.body, { childList: true, subtree: true });
+    }
 
     return () => {
-      if (frame) cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("resize", inspect);
-      clearInterval(fallback);
+      mountObserver?.disconnect();
+      expiryObserver?.disconnect();
+      resizeObserver?.disconnect();
     };
   }, [isRoom, pathname]);
 
