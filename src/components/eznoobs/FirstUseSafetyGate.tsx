@@ -1,10 +1,12 @@
 import { useRouterState } from "@tanstack/react-router";
 import { ShieldCheck, Skull, UserRoundCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ADULT_ACK_KEY = "eznoobs:adult-ack:v1";
 const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
 const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type GateStage = "age" | "rules" | null;
 
@@ -13,6 +15,8 @@ export function FirstUseSafetyGate() {
   const [stage, setStage] = useState<GateStage>(null);
   const [checked, setChecked] = useState(false);
   const [ready, setReady] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -32,12 +36,44 @@ export function FirstUseSafetyGate() {
 
   useEffect(() => {
     if (!stage || typeof document === "undefined") return;
+
     const previousOverflow = document.body.style.overflow;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
+
+    const focusFirstControl = () => {
+      const first = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      first?.focus();
+    };
+    const frame = requestAnimationFrame(focusFirstControl);
+
     return () => {
+      cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus({ preventScroll: true });
+      previousFocusRef.current = null;
     };
   }, [stage]);
+
+  function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [],
+    ).filter((element) => !element.hasAttribute("disabled") && element.offsetParent !== null);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    const active = document.activeElement;
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   function acceptAge() {
     if (!checked) return;
@@ -59,11 +95,14 @@ export function FirstUseSafetyGate() {
   if (!ready || !stage) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 px-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-background/95 px-4 py-6 backdrop-blur-md sm:py-8">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="eznoobs-first-use-title"
+        aria-describedby="eznoobs-first-use-description"
+        onKeyDown={trapFocus}
         className="ez-panel-strong corner-cut relative w-full max-w-lg overflow-hidden border border-primary/25 bg-background p-5 shadow-2xl sm:p-7"
       >
         <div className="pointer-events-none absolute inset-0 micro-grid opacity-15" />
@@ -80,8 +119,8 @@ export function FirstUseSafetyGate() {
                 </div>
               </div>
 
-              <p className="mt-5 text-sm leading-6 text-muted-foreground">
-                EZNOOBS is intended for adults. We do not ask for your birthday or ID — this is a one-time self-attestation stored only on this browser.
+              <p id="eznoobs-first-use-description" className="mt-5 text-sm leading-6 text-muted-foreground">
+                EZNOOBS is intended for adults. Confirm that you are 18 or older to continue.
               </p>
 
               <label className="mt-5 flex cursor-pointer items-start gap-3 border border-border bg-surface/35 p-3 text-sm text-foreground">
@@ -115,7 +154,7 @@ export function FirstUseSafetyGate() {
                 </div>
               </div>
 
-              <p className="mt-5 text-sm leading-6 text-muted-foreground">
+              <p id="eznoobs-first-use-description" className="mt-5 text-sm leading-6 text-muted-foreground">
                 EZNOOBS gives post-game chat more room to breathe, but the line is simple.
               </p>
 
