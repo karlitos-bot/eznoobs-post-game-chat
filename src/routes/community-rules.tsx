@@ -37,7 +37,7 @@ function CommunityRules() {
           bullets: [
             "Talk about the game, the score, the play, the throw, the clutch, the whiff or the rematch.",
             "Profanity and ordinary non-protected insults are allowed.",
-            "You can mute another player locally if you simply do not want to see their messages.",
+            "Use the report control when content crosses the safety line; reports are reviewed rather than treated as automatic proof.",
           ],
         },
         {
