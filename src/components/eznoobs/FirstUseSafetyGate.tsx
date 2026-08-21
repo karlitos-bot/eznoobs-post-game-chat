@@ -1,0 +1,155 @@
+import { useRouterState } from "@tanstack/react-router";
+import { ShieldCheck, Skull, UserRoundCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const ADULT_ACK_KEY = "eznoobs:adult-ack:v1";
+const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
+const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
+
+type GateStage = "age" | "rules" | null;
+
+export function FirstUseSafetyGate() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [stage, setStage] = useState<GateStage>(null);
+  const [checked, setChecked] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const adultAccepted = localStorage.getItem(ADULT_ACK_KEY) === "yes";
+    const rulesAccepted = localStorage.getItem(RULES_ACK_KEY) === "yes";
+
+    if (!adultAccepted) {
+      setStage("age");
+    } else if (ROOM_PATH_RE.test(pathname) && !rulesAccepted) {
+      setStage("rules");
+    } else {
+      setStage(null);
+    }
+    setReady(true);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!stage || typeof document === "undefined") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [stage]);
+
+  function acceptAge() {
+    if (!checked) return;
+    localStorage.setItem(ADULT_ACK_KEY, "yes");
+    setChecked(false);
+
+    if (ROOM_PATH_RE.test(pathname) && localStorage.getItem(RULES_ACK_KEY) !== "yes") {
+      setStage("rules");
+    } else {
+      setStage(null);
+    }
+  }
+
+  function acceptRules() {
+    localStorage.setItem(RULES_ACK_KEY, "yes");
+    setStage(null);
+  }
+
+  if (!ready || !stage) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 px-4 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="eznoobs-first-use-title"
+        className="ez-panel-strong corner-cut relative w-full max-w-lg overflow-hidden border border-primary/25 bg-background p-5 shadow-2xl sm:p-7"
+      >
+        <div className="pointer-events-none absolute inset-0 micro-grid opacity-15" />
+        <div className="relative">
+          {stage === "age" ? (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
+                  <UserRoundCheck className="size-5" />
+                </span>
+                <div>
+                  <p className="hud-label text-primary">One-time check</p>
+                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">18+ only</h2>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-muted-foreground">
+                EZNOOBS is intended for adults. We do not ask for your birthday or ID — this is a one-time self-attestation stored only on this browser.
+              </p>
+
+              <label className="mt-5 flex cursor-pointer items-start gap-3 border border-border bg-surface/35 p-3 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => setChecked(event.target.checked)}
+                  className="mt-0.5 size-4 accent-[hsl(var(--primary))]"
+                />
+                <span>I confirm that I am 18 years old or older.</span>
+              </label>
+
+              <button
+                type="button"
+                disabled={!checked}
+                onClick={acceptAge}
+                className="tactical-button mt-5 flex min-h-12 w-full items-center justify-center bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Continue to EZNOOBS
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
+                  <ShieldCheck className="size-5" />
+                </span>
+                <div>
+                  <p className="hud-label text-primary">Before you enter</p>
+                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">Trash talk responsibly</h2>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-muted-foreground">
+                EZNOOBS gives post-game chat more room to breathe, but the line is simple.
+              </p>
+
+              <div className="mt-4 grid gap-2">
+                <div className="flex items-center gap-3 border border-primary/25 bg-primary/[0.035] px-3 py-3">
+                  <span className="font-mono text-xs font-semibold text-primary">OK</span>
+                  <span className="text-sm">Game trash talk, profanity and ordinary insults.</span>
+                </div>
+                <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
+                  <Skull className="size-4 shrink-0 text-destructive" />
+                  <span className="text-sm">No hate/slurs targeting race, sex, religion or identity.</span>
+                </div>
+                <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
+                  <Skull className="size-4 shrink-0 text-destructive" />
+                  <span className="text-sm">No threats, doxxing, or personal contact/location information.</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={acceptRules}
+                className="tactical-button mt-5 flex min-h-12 w-full items-center justify-center bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground"
+              >
+                Got it — enter lobby
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const FIRST_USE_STORAGE_KEYS = {
+  adult: ADULT_ACK_KEY,
+  rules: RULES_ACK_KEY,
+} as const;
