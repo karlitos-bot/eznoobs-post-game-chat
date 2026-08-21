@@ -25,6 +25,7 @@ import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
 import { RoomExperienceLayer } from "@/components/eznoobs/RoomExperienceLayer";
 import { RoomExpiryGuard } from "@/components/eznoobs/RoomExpiryGuard";
+import { RoomMomentsLayer } from "@/components/eznoobs/RoomMomentsLayer";
 import { RunbackAftermathLayer } from "@/components/eznoobs/RunbackAftermathLayer";
 import { SecureRealtimeLayer } from "@/components/eznoobs/SecureRealtimeLayer";
 import { Toaster } from "@/components/ui/sonner";
@@ -190,6 +191,7 @@ function RootComponent() {
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
       <RoomExperienceLayer />
+      <RoomMomentsLayer />
       <RunbackAftermathLayer />
       <LobbyShowtimeLayer />
       <RoomExpiryGuard />
