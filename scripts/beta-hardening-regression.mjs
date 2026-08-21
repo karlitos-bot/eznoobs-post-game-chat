@@ -21,6 +21,7 @@ const firstUseGate = read('src/components/eznoobs/FirstUseSafetyGate.tsx');
 const doxxing = read('supabase/migrations/20260820114500_expand_doxxing_detection.sql');
 const lifetime = read('supabase/migrations/20260821043500_configurable_seven_to_ten_minute_lifetime.sql');
 const activityLifetime = read('supabase/migrations/20260821050000_activity_driven_lobby_extension.sql');
+const activityCooldown = read('supabase/migrations/20260821051000_activity_extension_cooldown.sql');
 
 check(realtimeLayer.includes('fastAttempts < 8'), 'Realtime keeps bounded fast reconnect retries');
 check(realtimeLayer.includes('30_000'), 'Realtime falls back to low-frequency background token retries');
@@ -60,6 +61,12 @@ check(activityLifetime.includes('DROP FUNCTION IF EXISTS public.extend_lobby(tex
 check(!fs.existsSync(path.join(root, 'src/components/eznoobs/KeepItGoingButton.tsx')), 'Manual Keep It Going button is removed');
 check(!fs.existsSync(path.join(root, 'src/lib/lobby-lifetime.functions.ts')), 'Manual extension server action is removed');
 check(!realtimeLayer.includes('KeepItGoingButton'), 'Realtime layer no longer mounts a manual extension UI');
+
+check(activityCooldown.includes('ADD COLUMN IF NOT EXISTS last_extended_at'), 'Lobby stores only its most recent automatic extension time');
+check(activityCooldown.includes("('lobby_activity_extension_cooldown_seconds', 60)"), 'Automatic extensions have a 60-second room-level cooldown');
+check(activityCooldown.includes('private.lobby_activity_extension_cooldown_seconds()'), 'Activity helper enforces the configured extension cooldown');
+check(activityCooldown.includes('v_lobby.last_extended_at IS NULL'), 'First eligible late-room activity may extend immediately');
+check(activityCooldown.includes('last_extended_at = CASE WHEN v_extended THEN now() ELSE last_extended_at END'), 'Extension timestamp changes only when time was actually added');
 
 check(firstUseGate.includes('eznoobs:adult-ack:v1'), '18+ acknowledgment is remembered locally');
 check(firstUseGate.includes('eznoobs:rules-ack:v1'), 'Lobby rules acknowledgment is remembered locally');
