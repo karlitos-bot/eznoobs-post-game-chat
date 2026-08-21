@@ -18,6 +18,9 @@ const realtimeLayer = read('src/components/eznoobs/SecureRealtimeLayer.tsx');
 const room = read('src/routes/room.$code.tsx');
 const rootRoute = read('src/routes/__root.tsx');
 const firstUseGate = read('src/components/eznoobs/FirstUseSafetyGate.tsx');
+const roomClarity = read('src/components/eznoobs/RoomClarityLayer.tsx');
+const expiryGuard = read('src/components/eznoobs/RoomExpiryGuard.tsx');
+const styles = read('src/styles.css');
 const doxxing = read('supabase/migrations/20260820114500_expand_doxxing_detection.sql');
 const lifetime = read('supabase/migrations/20260821043500_configurable_seven_to_ten_minute_lifetime.sql');
 const activityLifetime = read('supabase/migrations/20260821050000_activity_driven_lobby_extension.sql');
@@ -70,13 +73,32 @@ check(activityCooldown.includes('last_extended_at = CASE WHEN v_extended THEN no
 
 check(firstUseGate.includes('eznoobs:adult-ack:v1'), '18+ acknowledgment is remembered locally');
 check(firstUseGate.includes('eznoobs:rules-ack:v1'), 'Lobby rules acknowledgment is remembered locally');
+check(firstUseGate.includes('EZNOOBS is intended for adults. Confirm that you are 18 or older to continue.'), '18+ explanation stays short and product-focused');
+check(!firstUseGate.includes('birthday or ID') && !firstUseGate.includes('stored only on this browser'), 'Age-gate copy does not expose implementation details');
 check(firstUseGate.includes('I confirm that I am 18 years old or older.'), '18+ gate requires explicit self-attestation');
 check(firstUseGate.includes('No hate/slurs targeting race, sex, religion or identity.'), 'Rules reminder states the protected-class hate boundary');
 check(firstUseGate.includes('No threats, doxxing, or personal contact/location information.'), 'Rules reminder states the threats/doxxing boundary');
 check(firstUseGate.includes('localStorage.setItem(ADULT_ACK_KEY, "yes")'), '18+ acknowledgment is browser-local and persistent');
 check(firstUseGate.includes('localStorage.setItem(RULES_ACK_KEY, "yes")'), 'Rules acknowledgment is browser-local and persistent');
 check(firstUseGate.includes('ROOM_PATH_RE.test(pathname)'), 'Rules reminder is scoped to first lobby entry');
+check(firstUseGate.includes('aria-modal="true"') && firstUseGate.includes('aria-describedby="eznoobs-first-use-description"'), 'First-use modal exposes dialog semantics');
+check(firstUseGate.includes('function trapFocus') && firstUseGate.includes('previousFocusRef'), 'First-use modal traps and restores keyboard focus');
+check(firstUseGate.includes('overflow-y-auto') && firstUseGate.includes('py-6'), 'First-use modal can scroll safely on short mobile viewports');
 check(rootRoute.includes('<FirstUseSafetyGate />'), 'First-use safety gate is mounted globally');
+
+check(styles.includes('@media (prefers-reduced-motion: reduce)'), 'Global reduced-motion preference is respected');
+check(/@media \(max-width: 639px\)[\s\S]*font-size:\s*16px/.test(styles), 'Mobile text inputs avoid iOS focus zoom');
+check(styles.includes('@utility mobile-safe-bottom') && styles.includes('env(safe-area-inset-bottom)'), 'Safe-area bottom utility exists for mobile browser chrome');
+check(room.includes('h-[100dvh]') && room.includes('mobile-safe-bottom composer-shell'), 'Room uses dynamic viewport height and safe-area composer padding');
+
+check(roomClarity.includes('event.key === "Escape"') && roomClarity.includes('event.key !== "Tab"'), 'Mobile roster drawer supports Escape and trapped Tab navigation');
+check(roomClarity.includes('drawer.setAttribute("role", "dialog")') && roomClarity.includes('drawer.setAttribute("aria-modal", "true")'), 'Mobile roster drawer receives dialog semantics');
+check(roomClarity.includes('document.visibilityState === "hidden"'), 'Room clarity observer skips expensive work in background tabs');
+check(roomClarity.includes('window.setInterval(apply, 3000)'), 'Room clarity fallback polling is paced to three seconds');
+check(roomClarity.includes('7 min base · active rooms can reach 10'), 'Visible room lifetime copy matches the automatic extension model');
+check(roomClarity.includes('Active rooms can last up to 10 minutes.'), 'Join-gate lifetime copy no longer claims the timer never changes');
+check(expiryGuard.includes('window.setInterval(inspect, 2500)'), 'Expiry guard fallback no longer polls layout twice per second');
+check(expiryGuard.includes('current.top === nextRect.top') && expiryGuard.includes('current.height === nextRect.height'), 'Expiry guard avoids redundant rectangle state updates');
 
 if (failures.length) {
   console.error(`\nEZNOOBS beta-hardening regression check FAILED (${failures.length})`);
