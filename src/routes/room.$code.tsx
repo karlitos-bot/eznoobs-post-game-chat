@@ -97,8 +97,6 @@ type ReactionBurst = { id: number; messageId: string; label: string; lane: numbe
 type TypingUser = { guestId: string; nickname: string; team: Team; expiresAt: number };
 type TypingPayload = {
   guestId?: string;
-  nickname?: string;
-  team?: Team;
   active?: boolean;
 };
 
@@ -406,6 +404,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
   const impactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentRef = useRef(0);
+  const playersRef = useRef<Participant[]>([]);
   const realtimeToken = useLobbyRealtimeToken(lobby.code);
 
   useEffect(() => {
@@ -468,6 +467,7 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
       knownReactionIdsRef.current = nextReactionIds;
 
       setMessages(snapshot.messages);
+      playersRef.current = snapshot.players;
       setPlayers(snapshot.players);
       setReactions(snapshot.reactions);
       setRematchVotes(snapshot.rematchVotes);
@@ -526,13 +526,15 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         return;
       }
 
-      if (!payload.nickname || !payload.team) return;
+      const sender = playersRef.current.find((player) => player.guest_id === payload.guestId);
+      if (!sender) return;
+
       setTypingUsers((current) => ({
         ...current,
-        [payload.guestId!]: {
-          guestId: payload.guestId!,
-          nickname: payload.nickname!,
-          team: payload.team!,
+        [sender.guest_id]: {
+          guestId: sender.guest_id,
+          nickname: sender.nickname,
+          team: sender.team,
           expiresAt: Date.now() + 2200,
         },
       }));
@@ -732,8 +734,6 @@ function Room({ lobby, guestId }: { lobby: Lobby; guestId: string }) {
         event: "typing",
         payload: {
           guestId: guestPublicId,
-          nickname: currentPlayer.nickname,
-          team: currentPlayer.team,
           active,
         },
       })
