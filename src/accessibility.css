@@ -4,7 +4,7 @@
   position: fixed;
   top: max(0.5rem, env(safe-area-inset-top));
   left: max(0.5rem, env(safe-area-inset-left));
-  z-index: 250;
+  z-index: 110;
   min-height: 44px;
   transform: translateY(calc(-100% - 1rem));
   border: 2px solid var(--primary);
