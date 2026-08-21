@@ -81,6 +81,21 @@ export function RoomClarityLayer() {
 
           if (text === "RECONNECTING · SYNCING LOBBY STATE") {
             element.classList.add("ez-reconnect-redundant");
+            element.setAttribute("role", "status");
+            element.setAttribute("aria-live", "polite");
+            element.setAttribute("aria-atomic", "true");
+          }
+
+          if (text.startsWith("CONNECTION LOST ·")) {
+            element.setAttribute("role", "alert");
+            element.setAttribute("aria-live", "assertive");
+            element.setAttribute("aria-atomic", "true");
+          }
+
+          if (text.includes("LOBBY CLOSED · TEMPORARY CHAT CLEARED")) {
+            element.setAttribute("role", "status");
+            element.setAttribute("aria-live", "polite");
+            element.setAttribute("aria-atomic", "true");
           }
 
           if (text === "OPEN CHANNEL") {
@@ -135,6 +150,14 @@ export function RoomClarityLayer() {
           reactionLive.classList.add("ez-clarity-hide");
         }
 
+        const activityStrip = document.querySelector<HTMLElement>(".live-activity-strip");
+        if (activityStrip) {
+          // Typing changes every few hundred milliseconds. Keep it visual instead of making
+          // screen readers repeatedly announce names entering/leaving the typing state.
+          activityStrip.setAttribute("aria-live", "off");
+          activityStrip.removeAttribute("aria-atomic");
+        }
+
         const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
         const composerForm = composer?.closest<HTMLElement>("form") ?? null;
         composerForm?.classList.add("ez-composer-clean");
@@ -148,11 +171,25 @@ export function RoomClarityLayer() {
           document.documentElement.style.setProperty("--ez-composer-top", `${formRect.top}px`);
         }
 
+        const drawerOpener = document.querySelector<HTMLButtonElement>(
+          'button[aria-label^="Open player list"]',
+        );
+        drawerOpener?.setAttribute("aria-haspopup", "dialog");
+
         const { closeButton, drawer } = getPlayerDrawer();
+        drawerOpener?.setAttribute("aria-expanded", drawer ? "true" : "false");
+
         if (drawer && closeButton) {
+          const drawerTitle = drawer.querySelector<HTMLElement>("h2");
+          if (drawerTitle) {
+            drawerTitle.id = "ez-player-drawer-title";
+            drawer.setAttribute("aria-labelledby", drawerTitle.id);
+            drawer.removeAttribute("aria-label");
+          } else {
+            drawer.setAttribute("aria-label", "Players online");
+          }
           drawer.setAttribute("role", "dialog");
           drawer.setAttribute("aria-modal", "true");
-          drawer.setAttribute("aria-label", "Players online");
           if (drawer.dataset.ezA11yReady !== "true") {
             drawer.dataset.ezA11yReady = "true";
             drawerPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
