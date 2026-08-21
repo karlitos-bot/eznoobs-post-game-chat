@@ -169,7 +169,7 @@ export function LobbyPersonalityLayer() {
   }, [playCue]);
 
   useEffect(() => {
-    if (!code || !guestCredential) {
+    if (!code || !guestCredential || !realtimeToken) {
       previousPlayersRef.current = null;
       previousMessagesRef.current = null;
       previousReactionCountsRef.current = null;
@@ -181,6 +181,8 @@ export function LobbyPersonalityLayer() {
     }
 
     let alive = true;
+    let refreshing = false;
+    let refreshQueued = false;
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const selfId = getGuestPublicId(guestCredential);
 
@@ -194,6 +196,13 @@ export function LobbyPersonalityLayer() {
     }
 
     async function refresh() {
+      if (!alive || document.visibilityState === "hidden") return;
+      if (refreshing) {
+        refreshQueued = true;
+        return;
+      }
+
+      refreshing = true;
       try {
         const result = await fetchSnapshot({ data: { code, guestId: guestCredential } });
         if (!alive || !result) return;
@@ -261,31 +270,48 @@ export function LobbyPersonalityLayer() {
         previousRematchRef.current = rematchCount;
       } catch {
         // The main room owns connection/error UI. This layer stays non-blocking.
+      } finally {
+        refreshing = false;
+        if (alive && refreshQueued) {
+          refreshQueued = false;
+          void refresh();
+        }
       }
     }
 
+    const scheduleRefresh = () => {
+      if (!alive || document.visibilityState === "hidden") return;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void refresh();
+      }, 180);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+
     void refresh();
-    // Token-scoped private topic only; polling covers the window before it arrives.
-    const channel = realtimeToken
-      ? supabase
-          .channel(lobbyChannelName(code, realtimeToken))
-          .on("broadcast", { event: "db-change" }, () => {
-            if (refreshTimer) clearTimeout(refreshTimer);
-            refreshTimer = setTimeout(() => void refresh(), 150);
-          })
-          .subscribe()
-      : null;
-    const fallback = window.setInterval(() => void refresh(), 8000);
+    const channel = supabase
+      .channel(lobbyChannelName(code, realtimeToken))
+      .on("broadcast", { event: "db-change" }, scheduleRefresh)
+      .subscribe();
+    const fallback = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 30_000);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       alive = false;
       if (refreshTimer) clearTimeout(refreshTimer);
       clearInterval(fallback);
-      if (channel) void supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      void supabase.removeChannel(channel);
     };
   }, [code, fetchSnapshot, guestCredential, playCue, pushEvent, realtimeToken]);
 
-  if (!code || !guestCredential) return null;
+  if (!code || !guestCredential || !realtimeToken) return null;
 
   function toggleSound() {
     const next = !soundOn;
