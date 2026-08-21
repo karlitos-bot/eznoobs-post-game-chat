@@ -25,10 +25,7 @@
     line-height: 0.82;
   }
 
-  body:has(#create-lobby) #create-lobby {
-    min-width: 0;
-  }
-
+  body:has(#create-lobby) #create-lobby,
   body:has(#create-lobby) #create-lobby fieldset,
   body:has(#create-lobby) #create-lobby form,
   body:has(#create-lobby) #create-lobby input,
@@ -105,9 +102,33 @@
   }
 
   body:has(a[href="/ops/moderation"]) article,
-  body:has(a[href="/ops/enforcement"]) article {
+  body:has(a[href="/ops/enforcement"]) article,
+  body:has(a[href="/ops/moderation"]) section,
+  body:has(a[href="/ops/enforcement"]) section {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+
+  body:has(a[href="/ops/moderation"]) nav,
+  body:has(a[href="/ops/enforcement"]) nav {
+    flex-wrap: wrap;
+  }
+
+  body:has(a[href="/ops/moderation"]) nav button,
+  body:has(a[href="/ops/enforcement"]) nav button,
+  body:has(a[href="/ops/moderation"]) nav a,
+  body:has(a[href="/ops/enforcement"]) nav a {
+    min-height: 44px !important;
+  }
+
+  body:has(a[href="/ops/moderation"]) input,
+  body:has(a[href="/ops/moderation"]) select,
+  body:has(a[href="/ops/moderation"]) textarea,
+  body:has(a[href="/ops/enforcement"]) input,
+  body:has(a[href="/ops/enforcement"]) select,
+  body:has(a[href="/ops/enforcement"]) textarea {
+    max-width: 100%;
+    min-width: 0;
   }
 
   /* Legal pages: avoid edge clipping around notches and long policy text. */
