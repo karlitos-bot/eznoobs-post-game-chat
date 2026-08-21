@@ -35,12 +35,38 @@ export function RoomClarityLayer() {
 
     let frame = 0;
     let drawerPreviousFocus: HTMLElement | null = null;
+    let composerResizeObserver: ResizeObserver | null = null;
+    let observedComposerForm: HTMLElement | null = null;
+
+    const measureComposer = () => {
+      if (!observedComposerForm) return;
+      const composerInner =
+        observedComposerForm.querySelector<HTMLElement>(".max-w-5xl") ?? observedComposerForm;
+      const innerRect = composerInner.getBoundingClientRect();
+      const formRect = observedComposerForm.getBoundingClientRect();
+      document.documentElement.style.setProperty("--ez-composer-left", `${innerRect.left}px`);
+      document.documentElement.style.setProperty("--ez-composer-width", `${innerRect.width}px`);
+      document.documentElement.style.setProperty("--ez-composer-top", `${formRect.top}px`);
+    };
+
+    const attachComposerGeometry = (composerForm: HTMLElement | null) => {
+      if (!composerForm || observedComposerForm === composerForm) return;
+      composerResizeObserver?.disconnect();
+      observedComposerForm = composerForm;
+      measureComposer();
+      composerResizeObserver = new ResizeObserver(measureComposer);
+      composerResizeObserver.observe(composerForm);
+      const composerInner = composerForm.querySelector<HTMLElement>(".max-w-5xl");
+      if (composerInner && composerInner !== composerForm) composerResizeObserver.observe(composerInner);
+    };
 
     const apply = () => {
       if (document.visibilityState === "hidden") return;
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const header = document.querySelector<HTMLElement>("header");
+        const main = document.querySelector<HTMLElement>("main");
+
         if (header) {
           header.classList.add("ez-room-header-clean");
 
@@ -58,87 +84,90 @@ export function RoomClarityLayer() {
             return text.includes("SALT") && text.includes("INVITE") && text.includes("RUN IT BACK");
           });
           secondaryRow?.classList.add("ez-room-secondary-row");
+
+          for (const element of header.querySelectorAll<HTMLElement>("p, span, div")) {
+            const text = cleanText(element);
+
+            if (text === "POST-MATCH LOBBY") {
+              element.parentElement?.classList.add("ez-clarity-hide");
+            }
+
+            // Legacy room JSX is consolidated in a later architecture pass. Normalize the
+            // two lifetime labels at render time without scanning the whole document.
+            if (text.includes("LIFETIME") && text.includes("RESET")) {
+              element.textContent = ROOM_LIFETIME_LABEL;
+            }
+
+            if (/^\d+\/\d+ ONLINE$/.test(text)) {
+              const parent = element.parentElement;
+              if (parent && !parent.closest("button")) parent.classList.add("ez-clarity-hide");
+            }
+          }
         }
 
-        const all = Array.from(document.querySelectorAll<HTMLElement>("body *"));
-
-        for (const element of all) {
-          const text = cleanText(element);
-
-          if (text === "POST-MATCH LOBBY" && header?.contains(element)) {
-            element.parentElement?.classList.add("ez-clarity-hide");
-          }
-
-          // Legacy room JSX is still consolidated in a later architecture pass. Normalize
-          // the two lifetime labels at render time without carrying the old marketing copy here.
-          if (
-            header?.contains(element) &&
-            text.includes("LIFETIME") &&
-            text.includes("RESET")
-          ) {
-            element.textContent = ROOM_LIFETIME_LABEL;
-          }
-
+        for (const paragraph of document.querySelectorAll<HTMLElement>("p.text-muted-foreground")) {
+          const text = cleanText(paragraph);
           if (
             text.startsWith("NO ACCOUNT. PICK A NAME AND A SIDE.") &&
             text.includes("CLOCK") &&
             text.includes("RESET")
           ) {
-            element.textContent = JOIN_LIFETIME_COPY;
-          }
-
-          if (/^\d+\/\d+ ONLINE$/.test(text) && header?.contains(element)) {
-            const parent = element.parentElement;
-            if (parent && !parent.closest("button")) parent.classList.add("ez-clarity-hide");
-          }
-
-          if (text === "RECONNECTING · SYNCING LOBBY STATE") {
-            element.classList.add("ez-reconnect-redundant");
-            element.setAttribute("role", "status");
-            element.setAttribute("aria-live", "polite");
-            element.setAttribute("aria-atomic", "true");
-          }
-
-          if (text.startsWith("CONNECTION LOST ·")) {
-            element.setAttribute("role", "alert");
-            element.setAttribute("aria-live", "assertive");
-            element.setAttribute("aria-atomic", "true");
-          }
-
-          if (text.includes("LOBBY CLOSED · TEMPORARY CHAT CLEARED")) {
-            element.setAttribute("role", "status");
-            element.setAttribute("aria-live", "polite");
-            element.setAttribute("aria-atomic", "true");
-          }
-
-          if (text === "OPEN CHANNEL") {
-            element.classList.add("ez-clarity-hide");
-          }
-
-          if (/^\d+ MESSAGES VISIBLE$/.test(text) || text === "LIVE COMMS") {
-            element.classList.add("ez-clarity-hide");
-          }
-
-          if (text === "PLAYERS DISAPPEAR FROM THE ROSTER AFTER INACTIVITY.") {
-            element.parentElement?.classList.add("ez-roster-footer-muted");
-          }
-
-          if (text === "PICK ONE OR TYPE YOUR OWN") {
-            element.classList.add("ez-clarity-hide");
+            paragraph.textContent = JOIN_LIFETIME_COPY;
           }
         }
 
-        const emptyTitle = all.find((element) => cleanText(element) === "CHANNEL IS QUIET");
-        const emptyPanel = closestHTMLElement(emptyTitle ?? null, ".ez-panel");
-        emptyPanel?.classList.add("ez-empty-state-clean");
+        if (main) {
+          const mainCandidates = Array.from(main.querySelectorAll<HTMLElement>("p, span, div"));
+          for (const element of mainCandidates) {
+            const text = cleanText(element);
 
-        const openingLabel = all.find((element) => cleanText(element) === "OPENING SHOTS");
+            if (text === "RECONNECTING · SYNCING LOBBY STATE") {
+              element.classList.add("ez-reconnect-redundant");
+              element.setAttribute("role", "status");
+              element.setAttribute("aria-live", "polite");
+              element.setAttribute("aria-atomic", "true");
+            }
+
+            if (text.startsWith("CONNECTION LOST ·")) {
+              element.setAttribute("role", "alert");
+              element.setAttribute("aria-live", "assertive");
+              element.setAttribute("aria-atomic", "true");
+            }
+
+            if (text.includes("LOBBY CLOSED · TEMPORARY CHAT CLEARED")) {
+              element.setAttribute("role", "status");
+              element.setAttribute("aria-live", "polite");
+              element.setAttribute("aria-atomic", "true");
+            }
+
+            if (text === "OPEN CHANNEL") element.classList.add("ez-clarity-hide");
+            if (/^\d+ MESSAGES VISIBLE$/.test(text) || text === "LIVE COMMS") {
+              element.classList.add("ez-clarity-hide");
+            }
+          }
+
+          const emptyTitle = mainCandidates.find((element) => cleanText(element) === "CHANNEL IS QUIET");
+          const emptyPanel = closestHTMLElement(emptyTitle ?? null, ".ez-panel");
+          emptyPanel?.classList.add("ez-empty-state-clean");
+        }
+
+        for (const rosterCopy of document.querySelectorAll<HTMLElement>("aside p")) {
+          if (cleanText(rosterCopy) === "PLAYERS DISAPPEAR FROM THE ROSTER AFTER INACTIVITY.") {
+            rosterCopy.parentElement?.classList.add("ez-roster-footer-muted");
+          }
+        }
+
+        const openingLabels = Array.from(
+          document.querySelectorAll<HTMLElement>("div.fixed span, div.fixed p"),
+        );
+        const openingLabel = openingLabels.find((element) => cleanText(element) === "OPENING SHOTS");
         const openingPanel = openingLabel
           ? closestHTMLElement(openingLabel, "div.fixed") ?? openingLabel.parentElement?.parentElement
           : null;
-        if (openingPanel instanceof HTMLElement) {
-          openingPanel.classList.add("ez-opening-shots-clean");
-        }
+        if (openingPanel instanceof HTMLElement) openingPanel.classList.add("ez-opening-shots-clean");
+
+        const pickOwn = openingLabels.find((element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN");
+        pickOwn?.classList.add("ez-clarity-hide");
 
         const soundButton = document.querySelector<HTMLElement>(
           'button[aria-label^="Turn lobby sounds"]',
@@ -149,7 +178,9 @@ export function RoomClarityLayer() {
           if (feed.querySelector(".animate-in")) feed.classList.add("ez-activity-feed-clean");
         }
 
-        const reactionLive = all.find((element) => cleanText(element).includes("REACTIONS FEEL LIVE"));
+        const reactionLive = Array.from(document.querySelectorAll<HTMLElement>("p, span")).find((element) =>
+          cleanText(element).includes("REACTIONS FEEL LIVE"),
+        );
         if (reactionLive) {
           let current: HTMLElement | null = reactionLive;
           for (let i = 0; i < 4 && current; i += 1) {
@@ -174,15 +205,7 @@ export function RoomClarityLayer() {
         const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
         const composerForm = composer?.closest<HTMLElement>("form") ?? null;
         composerForm?.classList.add("ez-composer-clean");
-
-        if (composerForm) {
-          const composerInner = composerForm.querySelector<HTMLElement>(".max-w-5xl") ?? composerForm;
-          const innerRect = composerInner.getBoundingClientRect();
-          const formRect = composerForm.getBoundingClientRect();
-          document.documentElement.style.setProperty("--ez-composer-left", `${innerRect.left}px`);
-          document.documentElement.style.setProperty("--ez-composer-width", `${innerRect.width}px`);
-          document.documentElement.style.setProperty("--ez-composer-top", `${formRect.top}px`);
-        }
+        attachComposerGeometry(composerForm);
 
         const drawerOpener = document.querySelector<HTMLButtonElement>(
           'button[aria-label^="Open player list"]',
@@ -248,18 +271,17 @@ export function RoomClarityLayer() {
     };
 
     apply();
+    // Structural changes cover route transitions, drawer/opening-shot mounts, reconnect banners,
+    // messages, and expiry. Ignore noisy text-only updates such as the timer and typing strip.
     const observer = new MutationObserver(apply);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const fallback = window.setInterval(apply, 3000);
-    window.addEventListener("resize", apply);
+    observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
-      clearInterval(fallback);
       observer.disconnect();
-      window.removeEventListener("resize", apply);
+      composerResizeObserver?.disconnect();
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("visibilitychange", handleVisibility);
       drawerPreviousFocus?.focus({ preventScroll: true });
