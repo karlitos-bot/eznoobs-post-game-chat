@@ -13,6 +13,7 @@
     "mobile:check": "node scripts/mobile-regression.mjs",
     "accessibility:check": "node scripts/accessibility-regression.mjs",
     "copy:check": "node scripts/copy-regression.mjs",
+    "performance:check": "node scripts/performance-regression.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
