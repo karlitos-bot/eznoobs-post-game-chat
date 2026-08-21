@@ -5,6 +5,9 @@ import "./room-clarity.css";
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const ROOM_LIFETIME_LABEL = "7 min base · active rooms can reach 10";
+const JOIN_LIFETIME_COPY =
+  "No account. Pick a name and a side. Active rooms can last up to 10 minutes.";
 
 function cleanText(node: Element | null) {
   return (node?.textContent ?? "")
@@ -66,12 +69,22 @@ export function RoomClarityLayer() {
             element.parentElement?.classList.add("ez-clarity-hide");
           }
 
-          if (text === "FIXED LIFETIME · NO RESET" && header?.contains(element)) {
-            element.textContent = "7 min base · active rooms can reach 10";
+          // Legacy room JSX is still consolidated in a later architecture pass. Normalize
+          // the two lifetime labels at render time without carrying the old marketing copy here.
+          if (
+            header?.contains(element) &&
+            text.includes("LIFETIME") &&
+            text.includes("RESET")
+          ) {
+            element.textContent = ROOM_LIFETIME_LABEL;
           }
 
-          if (text === "NO ACCOUNT. PICK A NAME AND A SIDE. THE CLOCK NEVER RESETS.") {
-            element.textContent = "No account. Pick a name and a side. Active rooms can last up to 10 minutes.";
+          if (
+            text.startsWith("NO ACCOUNT. PICK A NAME AND A SIDE.") &&
+            text.includes("CLOCK") &&
+            text.includes("RESET")
+          ) {
+            element.textContent = JOIN_LIFETIME_COPY;
           }
 
           if (/^\d+\/\d+ ONLINE$/.test(text) && header?.contains(element)) {
