@@ -13,6 +13,7 @@ import accessibilityCss from "../accessibility.css?url";
 import appCss from "../styles.css?url";
 import mobileQaCss from "../mobile-qa.css?url";
 import phaseABatch2Css from "../phase-a-batch2.css?url";
+import phaseABatch2ExtrasCss from "../phase-a-batch2-extras.css?url";
 import phaseAPolishCss from "../phase-a-polish.css?url";
 import { AccessibilityLayer } from "@/components/eznoobs/AccessibilityLayer";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
@@ -134,6 +135,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: phaseABatch2Css,
+      },
+      {
+        rel: "stylesheet",
+        href: phaseABatch2ExtrasCss,
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
