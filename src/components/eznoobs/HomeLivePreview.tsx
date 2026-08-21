@@ -3,6 +3,8 @@ import { Swords, Timer, Zap } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 
+import "./home-live-preview.css";
+
 export function HomeLivePreview() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [mount, setMount] = useState<HTMLElement | null>(null);
