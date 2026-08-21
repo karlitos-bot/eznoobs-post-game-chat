@@ -84,6 +84,21 @@ function PrivacyPolicy() {
           ],
         },
         {
+          title: "External typography resource",
+          body: [
+            "The current beta loads its web typography from Google Fonts domains. When those resources are requested, Google may receive ordinary network information such as your IP address, browser/user-agent information and the requesting site origin. No EZNOOBS chat message or room credential is intentionally sent as part of the font request.",
+            "EZNOOBS plans to review self-hosting or removing this external font dependency before wider public beta to reduce unnecessary third-party requests.",
+          ],
+        },
+        {
+          title: "Your choices and privacy rights",
+          body: [
+            "You can clear EZNOOBS browser storage through your browser/site-data controls to remove the locally remembered guest credential and preferences from that browser. Doing so creates a fresh browser identity the next time you use the service.",
+            "Depending on the law that applies to you, you may have rights relating to personal data such as access, correction, deletion, restriction, objection or complaint to a supervisory authority. Because EZNOOBS intentionally avoids registered accounts and most room data is short-lived, the service may have limited ability to connect a retained record to a real-world person without additional information from that person.",
+            "A dedicated privacy contact method will be published before wider public beta so applicable privacy requests can be handled through a clear channel.",
+          ],
+        },
+        {
           title: "What EZNOOBS does not build by default",
           bullets: [
             "No mandatory account or permanent public profile is required for the current service.",
