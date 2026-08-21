@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 const ADULT_ACK_KEY = "eznoobs:adult-ack:v1";
 const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
 const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
+const LEGAL_PATHS = new Set(["/community-rules", "/privacy", "/terms"]);
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const memoryAcknowledgments = new Set<string>();
@@ -40,6 +41,12 @@ export function FirstUseSafetyGate() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    if (LEGAL_PATHS.has(pathname)) {
+      setStage(null);
+      setReady(true);
+      return;
+    }
 
     const adultAccepted = hasAcknowledgment(ADULT_ACK_KEY);
     const rulesAccepted = hasAcknowledgment(RULES_ACK_KEY);
