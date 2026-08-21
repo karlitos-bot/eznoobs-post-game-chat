@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
+import { HomeLegalNav } from "@/components/eznoobs/HomeLegalNav";
 import { LobbyPersonalityLayer } from "@/components/eznoobs/LobbyPersonalityLayer";
 import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
@@ -144,6 +145,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <HomeLegalNav />
       <SecureRealtimeLayer />
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
