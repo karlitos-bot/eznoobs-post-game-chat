@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import mobileQaCss from "../mobile-qa.css?url";
 import phaseABatch2Css from "../phase-a-batch2.css?url";
 import phaseABatch2ExtrasCss from "../phase-a-batch2-extras.css?url";
+import phaseABatch3Css from "../phase-a-batch3.css?url";
 import phaseAPolishCss from "../phase-a-polish.css?url";
 import { AccessibilityLayer } from "@/components/eznoobs/AccessibilityLayer";
 import { FirstUseSafetyGate } from "@/components/eznoobs/FirstUseSafetyGate";
@@ -24,6 +25,7 @@ import { LobbyShowtimeLayer } from "@/components/eznoobs/LobbyShowtimeLayer";
 import { RoomClarityLayer } from "@/components/eznoobs/RoomClarityLayer";
 import { RoomExperienceLayer } from "@/components/eznoobs/RoomExperienceLayer";
 import { RoomExpiryGuard } from "@/components/eznoobs/RoomExpiryGuard";
+import { RunbackAftermathLayer } from "@/components/eznoobs/RunbackAftermathLayer";
 import { SecureRealtimeLayer } from "@/components/eznoobs/SecureRealtimeLayer";
 import { Toaster } from "@/components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -140,6 +142,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: phaseABatch2ExtrasCss,
       },
+      {
+        rel: "stylesheet",
+        href: phaseABatch3Css,
+      },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -184,6 +190,7 @@ function RootComponent() {
       <LobbyPersonalityLayer />
       <RoomClarityLayer />
       <RoomExperienceLayer />
+      <RunbackAftermathLayer />
       <LobbyShowtimeLayer />
       <RoomExpiryGuard />
       <FirstUseSafetyGate />
