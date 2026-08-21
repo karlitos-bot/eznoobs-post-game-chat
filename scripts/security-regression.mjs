@@ -29,7 +29,10 @@ function sqlFunction(sql, name) {
 }
 
 const sourceFiles = walk('src').filter((file) => /\.(?:ts|tsx|js|jsx)$/.test(file));
-const source = sourceFiles.map((file) => `\n/* ${file} */\n${read(file)}`).join('\n');
+const reviewedDangerousHtmlHelpers = new Set(['src/components/ui/chart.tsx']);
+const applicationSourceFiles = sourceFiles.filter((file) => !reviewedDangerousHtmlHelpers.has(file));
+const source = applicationSourceFiles.map((file) => `\n/* ${file} */\n${read(file)}`).join('\n');
+const reviewedChartHelper = read('src/components/ui/chart.tsx');
 const client = read('src/integrations/supabase/client.ts');
 const room = read('src/routes/room.$code.tsx');
 const server = read('src/server.ts');
@@ -52,7 +55,12 @@ const usernameSafety = read('supabase/migrations/20260820113000_reject_invisible
 const cleanup = read('supabase/migrations/20260819124500_five_minute_ttl_and_cleanup.sql');
 const fixedLifetime = read('supabase/migrations/20260819143000_fixed_lobby_lifetime_and_capacity.sql');
 
-check(!/dangerouslySetInnerHTML\s*=/.test(source), 'No dangerouslySetInnerHTML in application source');
+check(!/dangerouslySetInnerHTML\s*=/.test(source), 'No dangerouslySetInnerHTML in EZNOOBS application source');
+check(
+  /dangerouslySetInnerHTML\s*=/.test(reviewedChartHelper) &&
+    !/(?:from\s+["'][^"']*components\/ui\/chart["']|import\(["'][^"']*components\/ui\/chart["']\))/.test(source),
+  'Reviewed shadcn chart HTML helper remains unused by EZNOOBS application code',
+);
 check(!/\b(?:RTCPeerConnection|webkitRTCPeerConnection|RTCDataChannel)\b/.test(source), 'No WebRTC/P2P browser APIs in application source');
 check(!/sb_secret_[A-Za-z0-9_-]{8,}/.test(source), 'No Supabase secret key literal in client/server source');
 check(!/service[_-]?role[^\n]{0,80}(?:eyJ|sb_secret_)/i.test(source), 'No service-role credential embedded in source');
@@ -85,11 +93,15 @@ for (const directive of [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "https://*.supabase.co",
-  "wss://*.supabase.co",
 ]) {
   check(server.includes(`"${directive}"`), `CSP report-only policy includes ${directive}`);
 }
+check(server.includes('https://*.supabase.co'), 'CSP report-only policy includes https://*.supabase.co');
+check(server.includes('wss://*.supabase.co'), 'CSP report-only policy includes wss://*.supabase.co');
+check(
+  server.includes("\"connect-src 'self' https://*.supabase.co wss://*.supabase.co\""),
+  'CSP report-only connect-src keeps Supabase HTTPS and WSS on the same directive',
+);
 
 for (const table of ['lobbies', 'messages', 'participants', 'reactions', 'rematch_votes', 'reports']) {
   check(
