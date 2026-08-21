@@ -1,0 +1,468 @@
+/* EZNOOBS Phase A / Batch 2 — identity, room heat, quick fire and playful feedback */
+
+.ez-opening-shots-clean {
+  display: none !important;
+}
+
+.message-avatar[data-ez-identity-ready="true"],
+.player-row span[data-ez-identity-ready="true"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 72% 22%, hsl(var(--ez-sigil-hue) 78% 58% / 0.22), transparent 31%),
+    linear-gradient(145deg, color-mix(in oklab, var(--surface) 84%, black 16%), color-mix(in oklab, var(--background) 90%, black 10%)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 7%, transparent),
+    0 8px 22px color-mix(in oklab, black 24%, transparent);
+}
+
+.message-avatar[data-ez-identity-ready="true"]::before,
+.player-row span[data-ez-identity-ready="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -38%;
+  z-index: -1;
+  opacity: 0.28;
+  transform: rotate(var(--ez-sigil-rotate));
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 8px,
+    hsl(var(--ez-sigil-hue) 80% 60% / 0.32) 8px 10px,
+    transparent 10px 18px
+  );
+}
+
+.message-avatar[data-ez-sigil="1"]::before,
+.player-row span[data-ez-sigil="1"]::before {
+  background: repeating-radial-gradient(circle at 40% 40%, hsl(var(--ez-sigil-hue) 80% 60% / 0.28) 0 2px, transparent 2px 8px);
+}
+
+.message-avatar[data-ez-sigil="2"]::before,
+.player-row span[data-ez-sigil="2"]::before {
+  background: conic-gradient(from var(--ez-sigil-rotate), transparent 0 18%, hsl(var(--ez-sigil-hue) 78% 62% / 0.34) 18% 24%, transparent 24% 54%, hsl(var(--ez-sigil-hue) 78% 62% / 0.2) 54% 62%, transparent 62%);
+}
+
+.message-avatar[data-ez-sigil="3"]::before,
+.player-row span[data-ez-sigil="3"]::before {
+  background: linear-gradient(45deg, transparent 38%, hsl(var(--ez-sigil-hue) 84% 62% / 0.32) 39% 44%, transparent 45% 58%, hsl(var(--ez-sigil-hue) 84% 62% / 0.2) 59% 64%, transparent 65%);
+}
+
+.message-avatar[data-ez-sigil="4"]::before,
+.player-row span[data-ez-sigil="4"]::before {
+  background: repeating-linear-gradient(0deg, transparent 0 5px, hsl(var(--ez-sigil-hue) 78% 60% / 0.3) 5px 6px, transparent 6px 11px);
+}
+
+.message-avatar[data-ez-sigil="5"]::before,
+.player-row span[data-ez-sigil="5"]::before {
+  background: radial-gradient(ellipse at 50% 50%, transparent 0 20%, hsl(var(--ez-sigil-hue) 82% 60% / 0.28) 21% 27%, transparent 28% 48%, hsl(var(--ez-sigil-hue) 82% 60% / 0.18) 49% 53%, transparent 54%);
+}
+
+.message-card[data-ez-team="blue"] {
+  border-color: color-mix(in oklab, var(--blue-team) 16%, var(--border)) !important;
+}
+
+.message-card[data-ez-team="red"] {
+  border-color: color-mix(in oklab, var(--red-team) 16%, var(--border)) !important;
+}
+
+.message-card[data-ez-team="spectator"] {
+  border-color: color-mix(in oklab, var(--spectator) 10%, var(--border)) !important;
+}
+
+.message-card[data-ez-team="blue"]:hover {
+  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--blue-team) 75%, transparent), 0 10px 34px color-mix(in oklab, var(--blue-team) 5%, transparent);
+}
+
+.message-card[data-ez-team="red"]:hover {
+  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--red-team) 75%, transparent), 0 10px 34px color-mix(in oklab, var(--red-team) 5%, transparent);
+}
+
+.player-row[data-ez-team="blue"] {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--blue-team) 5%, transparent), color-mix(in oklab, var(--surface) 22%, transparent));
+}
+
+.player-row[data-ez-team="red"] {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--red-team) 5%, transparent), color-mix(in oklab, var(--surface) 22%, transparent));
+}
+
+.player-row[data-ez-team="spectator"] {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--spectator) 3%, transparent), color-mix(in oklab, var(--surface) 22%, transparent));
+}
+
+.player-row.ez-player-new {
+  animation: ez-player-arrival 1.85s cubic-bezier(.18,.85,.3,1) both;
+}
+
+@keyframes ez-player-arrival {
+  0% {
+    opacity: 0.25;
+    transform: translateX(-8px);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 58%, transparent), 0 0 30px color-mix(in oklab, var(--primary) 11%, transparent);
+  }
+  24% { opacity: 1; transform: translateX(2px); }
+  100% { opacity: 1; transform: none; box-shadow: none; }
+}
+
+/* Quick-fire game-specific Opening Shots */
+.ez-quickfire {
+  position: fixed;
+  z-index: 48;
+  left: var(--ez-composer-left, 50%);
+  bottom: calc(100dvh - var(--ez-composer-top, 0px) + 0.58rem);
+  width: var(--ez-composer-width, min(90vw, 64rem));
+  max-width: calc(100vw - 1.25rem);
+  border: 1px solid color-mix(in oklab, var(--border) 74%, var(--primary) 26%);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 91%, transparent), color-mix(in oklab, var(--background) 96%, transparent));
+  padding: 0.55rem;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 5%, transparent),
+    0 18px 52px color-mix(in oklab, black 30%, transparent),
+    0 0 30px color-mix(in oklab, var(--primary) 4%, transparent);
+  backdrop-filter: blur(18px);
+  animation: ez-quickfire-in 360ms cubic-bezier(.18,.85,.3,1) both;
+}
+
+.ez-quickfire-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.1rem 0.3rem 0.48rem;
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.ez-quickfire-heading b {
+  margin-left: auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.52rem;
+  font-weight: 500;
+}
+
+.ez-quickfire-scroll {
+  display: flex;
+  gap: 0.42rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ez-quickfire-scroll::-webkit-scrollbar { display: none; }
+
+.ez-quickfire-chip {
+  display: inline-flex;
+  min-height: 2.2rem;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--background) 82%, var(--surface) 18%);
+  padding: 0.42rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  color: var(--muted-foreground);
+  transition: transform 150ms ease, border-color 150ms ease, color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  animation: ez-chip-in 300ms calc(var(--ez-chip-index) * 38ms + 80ms) cubic-bezier(.18,.85,.3,1) both;
+}
+
+.ez-quickfire-chip:hover,
+.ez-quickfire-chip:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--border));
+  background: color-mix(in oklab, var(--primary) 7%, var(--surface));
+  color: var(--primary);
+  box-shadow: 0 7px 22px color-mix(in oklab, var(--primary) 7%, transparent);
+}
+
+.ez-quickfire-chip:active { transform: translateY(0) scale(0.98); }
+
+@keyframes ez-quickfire-in {
+  from { opacity: 0; transform: translateY(9px) scale(0.988); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ez-chip-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Salt Meter 2.0 */
+div[data-salt-level] {
+  position: relative;
+  min-height: 2rem;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--background) 68%, var(--surface) 32%);
+  padding: 0.28rem 0.48rem 0.28rem 2.05rem;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 4%, transparent);
+  transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+div[data-salt-level]::before {
+  content: "";
+  position: absolute;
+  left: 0.34rem;
+  top: 50%;
+  width: 1.35rem;
+  height: 1.35rem;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  background: url('/eznoobs-mark.png') center / cover no-repeat;
+  filter: saturate(0.9);
+  opacity: 0.72;
+  transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease;
+}
+
+div[data-salt-level="WARM"] {
+  border-color: color-mix(in oklab, #facc15 30%, var(--border));
+  background: color-mix(in oklab, #facc15 3.5%, var(--surface));
+}
+
+div[data-salt-level="SPICY"] {
+  border-color: color-mix(in oklab, #fb923c 38%, var(--border));
+  background: linear-gradient(90deg, color-mix(in oklab, #fb923c 6%, var(--surface)), color-mix(in oklab, var(--background) 78%, var(--surface) 22%));
+  box-shadow: 0 0 28px color-mix(in oklab, #fb923c 6%, transparent);
+}
+
+div[data-salt-level="SPICY"]::before {
+  opacity: 0.95;
+  filter: saturate(1.15) drop-shadow(0 0 6px color-mix(in oklab, #fb923c 35%, transparent));
+}
+
+div[data-salt-level="NUCLEAR"] {
+  border-color: color-mix(in oklab, #fb4b45 55%, var(--primary));
+  background: linear-gradient(90deg, color-mix(in oklab, #fb4b45 9%, var(--surface)), color-mix(in oklab, var(--primary) 5%, var(--background)));
+  box-shadow: 0 0 34px color-mix(in oklab, #fb4b45 9%, transparent);
+}
+
+div[data-salt-level="NUCLEAR"]::before {
+  opacity: 1;
+  filter: saturate(1.25) drop-shadow(0 0 8px color-mix(in oklab, #fb4b45 48%, transparent));
+  animation: ez-mascot-heat 620ms ease-in-out infinite;
+}
+
+@keyframes ez-mascot-heat {
+  0%, 100% { transform: translateY(-50%) rotate(-2deg) scale(0.98); }
+  50% { transform: translateY(-52%) rotate(2deg) scale(1.08); }
+}
+
+html[data-ez-salt="WARM"] .ez-room-header-clean {
+  box-shadow: 0 12px 40px color-mix(in oklab, #facc15 3%, black 25%);
+}
+
+html[data-ez-salt="SPICY"] .ez-room-header-clean {
+  box-shadow: 0 14px 46px color-mix(in oklab, #fb923c 6%, black 25%);
+}
+
+html[data-ez-salt="SPICY"] .composer-shell {
+  box-shadow: 0 -14px 42px color-mix(in oklab, #fb923c 3.5%, transparent);
+}
+
+html[data-ez-salt="NUCLEAR"] .ez-room-header-clean {
+  border-color: color-mix(in oklab, #fb4b45 18%, var(--border));
+  box-shadow: 0 16px 56px color-mix(in oklab, #fb4b45 8%, black 28%);
+}
+
+html[data-ez-salt="NUCLEAR"] .composer-shell {
+  box-shadow: 0 -16px 52px color-mix(in oklab, #fb4b45 5%, transparent);
+}
+
+html[data-ez-salt="NUCLEAR"] .chat-energy-nuclear::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 16% 96%, color-mix(in oklab, var(--blue-team) 4%, transparent), transparent 35%),
+    radial-gradient(circle at 84% 96%, color-mix(in oklab, var(--red-team) 5%, transparent), transparent 38%);
+  animation: ez-nuclear-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes ez-nuclear-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* One-time NUCLEAR moment */
+.ez-nuclear-moment {
+  background: radial-gradient(circle at center, color-mix(in oklab, #fb4b45 12%, transparent), transparent 42%);
+  animation: ez-nuclear-stage 1.7s ease both;
+}
+
+.ez-nuclear-flash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 8%, transparent), transparent);
+  animation: ez-nuclear-scan 1.3s ease both;
+}
+
+.ez-nuclear-card {
+  position: relative;
+  display: flex;
+  min-width: min(88vw, 28rem);
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid color-mix(in oklab, #fb4b45 54%, var(--primary));
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--background) 91%, #fb4b45 9%);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 28px 90px color-mix(in oklab, black 46%, transparent), 0 0 65px color-mix(in oklab, #fb4b45 15%, transparent);
+  animation: ez-nuclear-card-in 1.7s cubic-bezier(.18,.86,.3,1) both;
+}
+
+.ez-nuclear-mark {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in oklab, #fb4b45 44%, var(--border));
+  border-radius: 17px;
+  background: url('/eznoobs-mark.png') center / cover no-repeat;
+  box-shadow: 0 0 30px color-mix(in oklab, #fb4b45 14%, transparent);
+}
+
+.ez-nuclear-card span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: #fb8d88;
+}
+
+.ez-nuclear-card strong {
+  display: block;
+  margin-top: 0.1rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 8vw, 5rem);
+  line-height: 0.88;
+  letter-spacing: 0.025em;
+  color: #ff645e;
+  text-shadow: 0 0 35px color-mix(in oklab, #fb4b45 28%, transparent);
+}
+
+.ez-nuclear-card p {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@keyframes ez-nuclear-stage {
+  0% { opacity: 0; }
+  12%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes ez-nuclear-scan {
+  0% { opacity: 0; transform: translateX(-60%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(60%); }
+}
+
+@keyframes ez-nuclear-card-in {
+  0% { opacity: 0; transform: scale(0.78) translateY(16px); }
+  20% { opacity: 1; transform: scale(1.045) translateY(-2px); }
+  34%, 74% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: scale(0.96) translateY(-8px); }
+}
+
+/* Typing / composer / events */
+.live-activity-strip:not(.ez-activity-idle) {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 5%, var(--surface)), color-mix(in oklab, var(--surface) 20%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--primary) 10%, transparent), 0 -6px 20px color-mix(in oklab, var(--primary) 3%, transparent);
+}
+
+.typing-dots {
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+  padding: 0.32rem 0.42rem;
+}
+
+.ez-composer-clean textarea[aria-label="Message"] {
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
+}
+
+.ez-composer-clean button[aria-label="Send message"] {
+  border-radius: 11px;
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--primary) 7%, transparent);
+}
+
+.ez-composer-clean button[aria-label="Send message"]:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.015);
+}
+
+.ez-activity-feed-clean > div {
+  border-radius: 10px !important;
+  border-left-width: 3px !important;
+  background: color-mix(in oklab, var(--background) 90%, var(--surface) 10%) !important;
+  box-shadow: 0 14px 38px color-mix(in oklab, black 28%, transparent), inset 0 1px 0 color-mix(in oklab, white 4%, transparent) !important;
+}
+
+@media (max-width: 767px) {
+  .ez-quickfire {
+    left: max(0.62rem, env(safe-area-inset-left));
+    width: calc(100vw - max(1.24rem, env(safe-area-inset-left) + env(safe-area-inset-right)));
+    max-width: none;
+    bottom: calc(100dvh - var(--ez-composer-top, 0px) + 0.4rem);
+    padding: 0.45rem;
+    border-radius: 11px;
+  }
+
+  .ez-quickfire-heading {
+    padding-bottom: 0.38rem;
+  }
+
+  .ez-quickfire-chip {
+    min-height: 2.4rem;
+    padding-inline: 0.75rem;
+  }
+
+  .ez-nuclear-card {
+    min-width: min(91vw, 24rem);
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .ez-nuclear-mark {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-row.ez-player-new,
+  .ez-quickfire,
+  .ez-quickfire-chip,
+  div[data-salt-level="NUCLEAR"]::before,
+  html[data-ez-salt="NUCLEAR"] .chat-energy-nuclear::after,
+  .ez-nuclear-moment,
+  .ez-nuclear-flash,
+  .ez-nuclear-card {
+    animation: none !important;
+  }
+
+  .ez-quickfire-chip,
+  .ez-composer-clean button[aria-label="Send message"] {
+    transition: none !important;
+  }
+}
