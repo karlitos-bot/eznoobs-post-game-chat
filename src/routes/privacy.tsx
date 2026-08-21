@@ -26,7 +26,8 @@ function PrivacyPolicy() {
         {
           title: "No account required",
           body: [
-            "You can create and join EZNOOBS rooms without registering an account. The service uses a temporary browser guest credential so the backend can distinguish your actions from another participant's actions inside a room.",
+            "You can create and join EZNOOBS rooms without registering an account. The service uses a browser guest credential so the backend can distinguish your actions from another participant's actions and enforce room/security rules.",
+            "That guest credential normally remains in your browser's local storage until you clear EZNOOBS site data. It is not a public profile. If persistent browser storage is unavailable, EZNOOBS can fall back to an in-memory credential for the current page session.",
           ],
         },
         {
@@ -38,13 +39,14 @@ function PrivacyPolicy() {
             "Room code, selected game and room lifetime information.",
             "Temporary participant identifier, in-game username, selected side and recent-presence time.",
             "Chat messages, reactions, Runback votes and realtime room state.",
-            "Temporary private credentials and realtime tokens used to protect room actions.",
+            "Private participant credential hashes and temporary realtime tokens used to protect room actions.",
+            "A short-lived Runback link may connect an expired/ending room to one successor room; that link disappears with the temporary lobby lifecycle and is not permanent match history.",
           ],
         },
         {
           title: "Browser preferences",
           body: [
-            "EZNOOBS may remember lightweight choices in your browser, such as your last nickname/team/game, sound preference, and whether you have already acknowledged the 18+ and lobby-rules notices. These preferences are used to reduce repeated setup and are not public profiles.",
+            "EZNOOBS may remember lightweight choices in your browser, such as your last nickname/team/game, sound preference, and whether you have already acknowledged the 18+ / Terms and lobby-rules notices. These preferences reduce repeated setup and are not public profiles.",
           ],
         },
         {
@@ -75,9 +77,10 @@ function PrivacyPolicy() {
           ],
         },
         {
-          title: "Infrastructure data",
+          title: "Infrastructure and diagnostics",
           body: [
             "EZNOOBS uses hosted infrastructure and database services to operate the site. Hosting, network, security and platform providers may process ordinary technical connection information such as IP addresses, request metadata and logs as part of delivering and protecting the service. EZNOOBS does not expose those technical details to other lobby participants.",
+            "Application diagnostics may record technical error details needed to investigate failures. Room codes are intentionally redacted from EZNOOBS client error-telemetry route labels so a temporary lobby code is not unnecessarily included in that diagnostic context.",
           ],
         },
         {
