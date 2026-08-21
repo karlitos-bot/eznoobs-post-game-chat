@@ -1,0 +1,58 @@
+/* Homepage editorial overrides.
+   The original Phase A stylesheet intentionally cardified most homepage sections.
+   The redesigned landing page uses open editorial composition instead. */
+
+body:has(#create-lobby) .home-hero-grid,
+body:has(#create-lobby) .home-process-section,
+body:has(#create-lobby) .home-story-grid,
+body:has(#create-lobby) .home-games-band {
+  overflow: visible !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body:has(#create-lobby) .home-process-step,
+body:has(#create-lobby) .home-feature-row {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body:has(#create-lobby) .home-process-step:hover,
+body:has(#create-lobby) .home-feature-row:hover {
+  transform: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body:has(#create-lobby) .home-feature-primary {
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 3%, transparent),
+    0 18px 54px color-mix(in oklab, black 22%, transparent);
+}
+
+body:has(#create-lobby) .home-feature-primary:hover {
+  transform: translateY(-2px);
+  background:
+    radial-gradient(85% 110% at 8% 100%, color-mix(in oklab, var(--primary) 11%, transparent), transparent 65%),
+    linear-gradient(140deg, color-mix(in oklab, var(--surface) 82%, transparent), color-mix(in oklab, var(--background) 96%, transparent)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 22px 62px color-mix(in oklab, black 26%, transparent);
+}
+
+body:has(#create-lobby) .home-games-band article,
+body:has(#create-lobby) .home-games-band article:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body:has(#create-lobby) .home-mascot-image {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 767px) {
+  body:has(#create-lobby) .home-feature-primary:hover {
+    transform: none;
+  }
+}
