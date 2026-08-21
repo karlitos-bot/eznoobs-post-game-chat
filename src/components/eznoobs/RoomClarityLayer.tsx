@@ -3,6 +3,9 @@ import { useEffect } from "react";
 
 import "./room-clarity.css";
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function cleanText(node: Element | null) {
   return (node?.textContent ?? "")
     .replace(/\s+/g, " ")
@@ -14,6 +17,12 @@ function closestHTMLElement(node: Element | null, selector: string) {
   return node instanceof HTMLElement ? node.closest<HTMLElement>(selector) : null;
 }
 
+function getPlayerDrawer() {
+  const closeButton = document.querySelector<HTMLButtonElement>('button[aria-label="Close player list"]');
+  const drawer = closeButton?.closest<HTMLElement>(".mobile-safe-top") ?? null;
+  return { closeButton, drawer };
+}
+
 export function RoomClarityLayer() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isRoom = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/i.test(pathname);
@@ -22,8 +31,10 @@ export function RoomClarityLayer() {
     if (!isRoom) return;
 
     let frame = 0;
+    let drawerPreviousFocus: HTMLElement | null = null;
 
     const apply = () => {
+      if (document.visibilityState === "hidden") return;
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const header = document.querySelector<HTMLElement>("header");
@@ -56,7 +67,11 @@ export function RoomClarityLayer() {
           }
 
           if (text === "FIXED LIFETIME · NO RESET" && header?.contains(element)) {
-            element.parentElement?.classList.add("ez-clarity-hide");
+            element.textContent = "7 min base · active rooms can reach 10";
+          }
+
+          if (text === "NO ACCOUNT. PICK A NAME AND A SIDE. THE CLOCK NEVER RESETS.") {
+            element.textContent = "No account. Pick a name and a side. Active rooms can last up to 10 minutes.";
           }
 
           if (/^\d+\/\d+ ONLINE$/.test(text) && header?.contains(element)) {
@@ -132,20 +147,72 @@ export function RoomClarityLayer() {
           document.documentElement.style.setProperty("--ez-composer-width", `${innerRect.width}px`);
           document.documentElement.style.setProperty("--ez-composer-top", `${formRect.top}px`);
         }
+
+        const { closeButton, drawer } = getPlayerDrawer();
+        if (drawer && closeButton) {
+          drawer.setAttribute("role", "dialog");
+          drawer.setAttribute("aria-modal", "true");
+          drawer.setAttribute("aria-label", "Players online");
+          if (drawer.dataset.ezA11yReady !== "true") {
+            drawer.dataset.ezA11yReady = "true";
+            drawerPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            closeButton.focus({ preventScroll: true });
+          }
+        } else if (drawerPreviousFocus) {
+          drawerPreviousFocus.focus({ preventScroll: true });
+          drawerPreviousFocus = null;
+        }
       });
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const { closeButton, drawer } = getPlayerDrawer();
+      if (!drawer || !closeButton) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeButton.click();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (element) => element.offsetParent !== null,
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") apply();
     };
 
     apply();
     const observer = new MutationObserver(apply);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const fallback = window.setInterval(apply, 1500);
+    const fallback = window.setInterval(apply, 3000);
     window.addEventListener("resize", apply);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
       clearInterval(fallback);
       observer.disconnect();
       window.removeEventListener("resize", apply);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      drawerPreviousFocus?.focus({ preventScroll: true });
       document.documentElement.style.removeProperty("--ez-composer-left");
       document.documentElement.style.removeProperty("--ez-composer-width");
       document.documentElement.style.removeProperty("--ez-composer-top");
