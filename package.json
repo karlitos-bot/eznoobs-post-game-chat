@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "security:check": "node scripts/security-regression.mjs && node scripts/beta-hardening-regression.mjs",
+    "security:check": "node scripts/security-regression.mjs && node scripts/beta-hardening-regression.mjs && node scripts/legal-regression.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
