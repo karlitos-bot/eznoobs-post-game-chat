@@ -3,6 +3,7 @@ import { Swords, Timer, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import "./home-editorial-overrides.css";
 import "./home-live-preview.css";
 
 export function HomeLivePreview() {
