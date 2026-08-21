@@ -32,6 +32,8 @@ check(realtimeLayer.includes('window.addEventListener("online", handleOnline)'),
 check(realtimeLayer.includes('window.removeEventListener("online", handleOnline)'), 'Realtime online listener is cleaned up on unmount');
 check(realtimeLayer.includes('requestInFlight'), 'Realtime token recovery prevents overlapping requests');
 check(realtimeLayer.includes('tokenReady'), 'Realtime token recovery stops retries after success');
+check(realtimeLayer.includes('MutationObserver'), 'Realtime waits for room join without tight DOM polling');
+check(!realtimeLayer.includes('setTimeout(waitForJoinedRoom, 200)'), 'Realtime no longer polls for the composer every 200ms');
 
 check(room.includes('const playersRef = useRef<Participant[]>([])'), 'Typing identity has a trusted participant snapshot ref');
 check(room.includes('playersRef.current = snapshot.players'), 'Trusted typing participant ref is populated only from secure lobby snapshots');
@@ -94,10 +96,13 @@ check(room.includes('h-[100dvh]') && room.includes('mobile-safe-bottom composer-
 check(roomClarity.includes('event.key === "Escape"') && roomClarity.includes('event.key !== "Tab"'), 'Mobile roster drawer supports Escape and trapped Tab navigation');
 check(roomClarity.includes('drawer.setAttribute("role", "dialog")') && roomClarity.includes('drawer.setAttribute("aria-modal", "true")'), 'Mobile roster drawer receives dialog semantics');
 check(roomClarity.includes('document.visibilityState === "hidden"'), 'Room clarity observer skips expensive work in background tabs');
-check(roomClarity.includes('window.setInterval(apply, 3000)'), 'Room clarity fallback polling is paced to three seconds');
+check(!roomClarity.includes('setInterval('), 'Room clarity uses event-driven updates without permanent polling');
+check(!roomClarity.includes('querySelectorAll<HTMLElement>("body *")'), 'Room clarity no longer scans the entire document on room updates');
 check(roomClarity.includes('7 min base · active rooms can reach 10'), 'Visible room lifetime copy matches the automatic extension model');
 check(roomClarity.includes('Active rooms can last up to 10 minutes.'), 'Join-gate lifetime copy no longer claims the timer never changes');
-check(expiryGuard.includes('window.setInterval(inspect, 2500)'), 'Expiry guard fallback no longer polls layout twice per second');
+check(!expiryGuard.includes('setInterval('), 'Expiry guard uses event-driven expiry detection without permanent layout polling');
+check(expiryGuard.includes('ResizeObserver'), 'Expiry guard tracks room geometry only when layout actually changes');
+check(expiryGuard.includes('MutationObserver'), 'Expiry guard observes room expiry transitions instead of polling');
 check(expiryGuard.includes('current.top === nextRect.top') && expiryGuard.includes('current.height === nextRect.height'), 'Expiry guard avoids redundant rectangle state updates');
 
 if (failures.length) {
