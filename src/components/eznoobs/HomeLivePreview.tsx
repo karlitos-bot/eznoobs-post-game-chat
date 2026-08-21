@@ -15,28 +15,10 @@ export function HomeLivePreview() {
       return;
     }
 
-    const hero = document.querySelector<HTMLElement>(
-      "main > div:first-child > section:first-child",
-    );
-    if (!hero) return;
+    const host = document.querySelector<HTMLElement>("[data-home-preview-host]");
+    setMount(host);
 
-    const anchor = document.createElement("div");
-    anchor.className = "ez-home-preview-anchor";
-    anchor.dataset.ezHomePreview = "true";
-
-    const existing = hero.querySelector<HTMLElement>(
-      ":scope > [data-ez-home-preview='true']",
-    );
-    existing?.remove();
-
-    const processStrip = hero.children.item(1);
-    if (processStrip) hero.insertBefore(anchor, processStrip);
-    else hero.appendChild(anchor);
-
-    setMount(anchor);
-    return () => {
-      anchor.remove();
-    };
+    return () => setMount(null);
   }, [pathname]);
 
   if (!mount) return null;
