@@ -9,6 +9,7 @@ const accessibilityLayer = read("src/components/eznoobs/AccessibilityLayer.tsx")
 const accessibilityCss = read("src/accessibility.css");
 const firstUse = read("src/components/eznoobs/FirstUseSafetyGate.tsx");
 const roomClarity = read("src/components/eznoobs/RoomClarityLayer.tsx");
+const aftermath = read("src/components/eznoobs/RunbackAftermathLayer.tsx");
 const legal = read("src/components/eznoobs/LegalPage.tsx");
 const styles = read("src/styles.css");
 
@@ -26,6 +27,10 @@ const checks = [
   ["roster dialog traps Tab focus", roomClarity.includes('event.key !== "Tab"') && roomClarity.includes("focusable.length")],
   ["typing activity is not noisy live-region content", roomClarity.includes('activityStrip.setAttribute("aria-live", "off")')],
   ["offline state announces assertively", roomClarity.includes('role", "alert"') && roomClarity.includes('aria-live", "assertive"')],
+  ["Match Aftermath is a labelled modal dialog", aftermath.includes('role="dialog"') && aftermath.includes('aria-modal="true"') && aftermath.includes('aria-describedby="ez-aftermath-description"')],
+  ["Match Aftermath supports Escape close", aftermath.includes('event.key === "Escape"') && aftermath.includes('setShowAftermath(false)')],
+  ["Match Aftermath traps Tab focus", aftermath.includes('event.key !== "Tab"') && aftermath.includes('FOCUSABLE_SELECTOR')],
+  ["Match Aftermath restores prior focus", aftermath.includes('previousFocusRef.current?.focus')],
   ["legal nav exposes current page", legal.includes("aria-current")],
   ["global focus-visible styling exists", styles.includes("button:focus-visible") && styles.includes("textarea:focus-visible")],
   ["touch target utility is at least 44px", styles.includes("min-width: 44px") && styles.includes("min-height: 44px")],
