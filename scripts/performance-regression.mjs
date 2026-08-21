@@ -19,6 +19,8 @@ const clarity = read('src/components/eznoobs/RoomClarityLayer.tsx');
 const expiry = read('src/components/eznoobs/RoomExpiryGuard.tsx');
 const showtime = read('src/components/eznoobs/LobbyShowtimeLayer.tsx');
 const personality = read('src/components/eznoobs/LobbyPersonalityLayer.tsx');
+const moments = read('src/components/eznoobs/RoomMomentsLayer.tsx');
+const runback = read('src/components/eznoobs/RunbackAftermathLayer.tsx');
 
 check(realtime.includes('MutationObserver'), 'Realtime waits for joined room state with an observer');
 check(!realtime.includes('setTimeout(waitForJoinedRoom, 200)'), 'Realtime has no 200ms joined-room polling loop');
@@ -44,6 +46,15 @@ check(personality.includes('refreshing') && personality.includes('refreshQueued'
 check(personality.includes('document.visibilityState === "hidden"'), 'Personality work pauses in hidden tabs');
 check(personality.includes('30_000'), 'Personality fallback snapshot interval is reduced to 30 seconds');
 check(!personality.includes('8000'), 'Old 8-second personality polling is removed');
+
+check(!moments.includes('setInterval('), 'Ephemeral room moments have no permanent polling interval');
+check(moments.includes('observer.observe(roomRoot'), 'Room moments observe only the room subtree');
+check(moments.includes('requestAnimationFrame'), 'Room moments batch DOM reactions into animation frames');
+
+check(!runback.includes('setInterval('), 'Runback/Aftermath has no permanent polling interval');
+check(runback.includes('RUNBACK_RECOVERY_DELAYS = [0, 3_000, 10_000, 30_000]'), 'Runback fallback recovery is bounded');
+check(runback.includes('observer.observe(main'), 'Runback/Aftermath observation is scoped to room main');
+check(runback.includes('timers.forEach((timer) => window.clearTimeout(timer))'), 'Runback recovery timers are cleaned up');
 
 if (failures.length) {
   console.error(`\nEZNOOBS performance regression check FAILED (${failures.length})`);
