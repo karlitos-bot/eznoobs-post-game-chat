@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { Logo } from "@/components/eznoobs/Logo";
@@ -22,6 +22,8 @@ export function LegalPage({
   updated: string;
   sections: LegalSection[];
 }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
   return (
     <div className="relative min-h-[100dvh] overflow-x-hidden bg-background">
       <div className="pointer-events-none fixed inset-0 grid-bg opacity-[0.2]" />
@@ -37,7 +39,7 @@ export function LegalPage({
             to="/"
             className="touch-target inline-flex shrink-0 items-center gap-2 border border-border bg-surface/45 px-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
-            <ArrowLeft className="size-3.5" /> Back
+            <ArrowLeft className="size-3.5" aria-hidden="true" /> Back
           </Link>
         </div>
       </header>
@@ -46,7 +48,7 @@ export function LegalPage({
         <section className="ez-panel-strong corner-cut min-w-0 overflow-hidden">
           <div className="border-b border-border/70 px-5 py-7 sm:px-8 sm:py-9">
             <div className="flex items-center gap-2 text-primary">
-              <ShieldCheck className="size-4" />
+              <ShieldCheck className="size-4" aria-hidden="true" />
               <p className="hud-label text-primary">{eyebrow}</p>
             </div>
             <h1 className="mt-3 break-words text-4xl sm:text-6xl">{title}</h1>
@@ -86,13 +88,25 @@ export function LegalPage({
         </section>
 
         <nav aria-label="Legal pages" className="mt-4 grid gap-px border border-border/70 bg-border/70 sm:grid-cols-3">
-          <Link to="/community-rules" className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary">
+          <Link
+            to="/community-rules"
+            aria-current={pathname === "/community-rules" ? "page" : undefined}
+            className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary aria-[current=page]:text-primary"
+          >
             Community Rules
           </Link>
-          <Link to="/privacy" className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary">
+          <Link
+            to="/privacy"
+            aria-current={pathname === "/privacy" ? "page" : undefined}
+            className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary aria-[current=page]:text-primary"
+          >
             Privacy
           </Link>
-          <Link to="/terms" className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary">
+          <Link
+            to="/terms"
+            aria-current={pathname === "/terms" ? "page" : undefined}
+            className="touch-target bg-background/90 px-4 py-4 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary aria-[current=page]:text-primary"
+          >
             Terms
           </Link>
         </nav>
