@@ -31,6 +31,9 @@ jobs:
       - name: Mobile regression checks
         run: npm run mobile:check
 
+      - name: Accessibility regression checks
+        run: npm run accessibility:check
+
       - name: Lint
         run: npm run lint
 
