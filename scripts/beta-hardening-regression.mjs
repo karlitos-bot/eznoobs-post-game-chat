@@ -73,11 +73,11 @@ check(activityCooldown.includes('private.lobby_activity_extension_cooldown_secon
 check(activityCooldown.includes('v_lobby.last_extended_at IS NULL'), 'First eligible late-room activity may extend immediately');
 check(activityCooldown.includes('last_extended_at = CASE WHEN v_extended THEN now() ELSE last_extended_at END'), 'Extension timestamp changes only when time was actually added');
 
-check(firstUseGate.includes('eznoobs:adult-ack:v1'), '18+ acknowledgment is remembered locally');
+check(firstUseGate.includes('eznoobs:legal-ack:v2'), '18+ and Terms assent is versioned and remembered locally');
 check(firstUseGate.includes('eznoobs:rules-ack:v1'), 'Lobby rules acknowledgment is remembered locally');
-check(firstUseGate.includes('EZNOOBS is intended for adults. Confirm that you are 18 or older to continue.'), '18+ explanation stays short and product-focused');
-check(!firstUseGate.includes('birthday or ID') && !firstUseGate.includes('stored only on this browser'), 'Age-gate copy does not expose implementation details');
-check(firstUseGate.includes('I confirm that I am 18 years old or older.'), '18+ gate requires explicit self-attestation');
+check(firstUseGate.includes('EZNOOBS is an adults-only beta built for temporary post-game chat.'), 'First-use explanation stays short and product-focused');
+check(firstUseGate.includes('I confirm that I am 18 years old or older and agree to the Terms of Service.'), 'First-use gate requires explicit age and Terms assent');
+check(firstUseGate.includes('to="/terms"') && firstUseGate.includes('to="/privacy"') && firstUseGate.includes('to="/community-rules"'), 'Terms, Privacy and Rules are readable before assent');
 check(firstUseGate.includes('No hate/slurs targeting race, sex, religion or identity.'), 'Rules reminder states the protected-class hate boundary');
 check(firstUseGate.includes('No threats, doxxing, or personal contact/location information.'), 'Rules reminder states the threats/doxxing boundary');
 check(firstUseGate.includes('function rememberAcknowledgment') && firstUseGate.includes('window.localStorage.setItem(key, "yes")'), 'Accepted first-use gates persist when browser storage is available');
