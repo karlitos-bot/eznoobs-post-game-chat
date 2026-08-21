@@ -25,7 +25,7 @@ export function SecureRealtimeLayer() {
     let tokenReady = false;
     let requestInFlight = false;
     let fastAttempts = 0;
-    let waitTimer: ReturnType<typeof setTimeout> | null = null;
+    let joinObserver: MutationObserver | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let slowRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -90,6 +90,22 @@ export function SecureRealtimeLayer() {
       scheduleSlowRetry(requestToken);
     };
 
+    const markJoined = () => {
+      if (joinedRoom || cancelled) return;
+      joinedRoom = true;
+      joinObserver?.disconnect();
+      joinObserver = null;
+      void requestToken(true);
+    };
+
+    const detectJoinedRoom = () => {
+      if (document.querySelector('textarea[aria-label="Message"]')) {
+        markJoined();
+        return true;
+      }
+      return false;
+    };
+
     const handleOnline = () => {
       if (!joinedRoom || tokenReady || cancelled) return;
       clearRetryTimers();
@@ -97,23 +113,20 @@ export function SecureRealtimeLayer() {
       void requestToken(true);
     };
 
-    const waitForJoinedRoom = () => {
-      if (cancelled) return;
-      // The composer only exists after a participant has successfully joined.
-      if (document.querySelector('textarea[aria-label="Message"]')) {
-        joinedRoom = true;
-        void requestToken(true);
-        return;
-      }
-      waitTimer = setTimeout(waitForJoinedRoom, 200);
-    };
-
     window.addEventListener("online", handleOnline);
-    waitForJoinedRoom();
+
+    // The composer only exists after a participant has successfully joined. Check once,
+    // then observe structural changes instead of polling the whole DOM every 200ms.
+    if (!detectJoinedRoom()) {
+      joinObserver = new MutationObserver(() => {
+        detectJoinedRoom();
+      });
+      joinObserver.observe(document.body, { childList: true, subtree: true });
+    }
 
     return () => {
       cancelled = true;
-      if (waitTimer) clearTimeout(waitTimer);
+      joinObserver?.disconnect();
       clearRetryTimers();
       window.removeEventListener("online", handleOnline);
       sessionStorage.removeItem(key);
