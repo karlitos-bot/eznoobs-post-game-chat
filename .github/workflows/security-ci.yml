@@ -37,6 +37,9 @@ jobs:
       - name: Copy regression checks
         run: npm run copy:check
 
+      - name: Performance regression checks
+        run: npm run performance:check
+
       - name: Lint
         run: npm run lint
 
