@@ -98,6 +98,33 @@
   box-shadow: 0 8px 22px color-mix(in oklab, black 25%, transparent);
 }
 
+/* Persistent Salt-O-Meter + Quick Shots dock. Keep it pinned to the composer geometry
+   measured by RoomClarityLayer instead of relying on viewport-specific magic numbers. */
+.ez-personality-dock-clean {
+  top: auto !important;
+  right: auto !important;
+  bottom: calc(100dvh - var(--ez-composer-top, 0px) + 0.55rem) !important;
+  left: var(--ez-composer-left, 50%) !important;
+  width: var(--ez-composer-width, min(96vw, 58rem)) !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  translate: 0 0 !important;
+  --tw-translate-x: 0px !important;
+  --tw-translate-y: 0px !important;
+  z-index: 45 !important;
+}
+
+.ez-personality-dock-clean > div {
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 78%, transparent), color-mix(in oklab, var(--background) 95%, transparent)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 3%, transparent),
+    0 16px 46px color-mix(in oklab, black 28%, transparent) !important;
+}
+
 /* Activity feed = mini system-event cards. */
 .ez-activity-feed-clean {
   top: 6.65rem !important;
@@ -233,6 +260,10 @@ main ::selection,
 
   .ez-room-secondary-row {
     min-height: 2.5rem !important;
+  }
+
+  .ez-personality-dock-clean {
+    width: var(--ez-composer-width, min(96vw, 40rem)) !important;
   }
 }
 
