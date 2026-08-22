@@ -146,7 +146,7 @@ body:has(#create-lobby) h1 .text-primary {
 }
 
 body:has(#create-lobby) main img[alt*="mascot"] {
-  border-radius: 9px;
+  border-radius: 0;
   transform: translateZ(0);
   animation: ez-mascot-float 5s ease-in-out infinite;
 }

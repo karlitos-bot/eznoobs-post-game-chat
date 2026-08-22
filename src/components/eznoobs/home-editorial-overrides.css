@@ -49,6 +49,9 @@ body:has(#create-lobby) .home-games-band article:hover {
 
 body:has(#create-lobby) .home-mascot-image {
   border-radius: 0 !important;
+  background: none !important;
+  clip-path: none !important;
+  mix-blend-mode: normal !important;
 }
 
 @media (max-width: 767px) {

@@ -26,69 +26,12 @@
   margin-bottom: 1.25rem;
 }
 
-.home-mascot-emblem {
-  position: relative;
-  display: grid;
-  width: 6rem;
-  aspect-ratio: 1;
-  flex: 0 0 auto;
-  place-items: center;
-  isolation: isolate;
-  filter: drop-shadow(0 12px 30px color-mix(in oklab, black 42%, transparent));
-}
-
-.home-mascot-emblem::before,
-.home-mascot-emblem::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  clip-path: polygon(18% 0, 82% 0, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0 82%, 0 18%);
-}
-
-.home-mascot-emblem::before {
-  z-index: -2;
-  background:
-    linear-gradient(145deg, color-mix(in oklab, var(--primary) 70%, white 4%), color-mix(in oklab, var(--primary) 14%, transparent) 38%, color-mix(in oklab, var(--surface) 94%, transparent));
-  box-shadow: 0 0 42px color-mix(in oklab, var(--primary) 14%, transparent);
-}
-
-.home-mascot-emblem::after {
-  inset: 2px;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 50% 38%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 55%),
-    color-mix(in oklab, var(--background) 82%, transparent);
-}
-
-.home-mascot-orbit {
-  position: absolute;
-  inset: -0.55rem;
-  border: 1px solid color-mix(in oklab, var(--primary) 16%, transparent);
-  border-radius: 50%;
-  opacity: 0.6;
-}
-
-.home-mascot-orbit::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -2px;
-  width: 5px;
-  height: 5px;
-  margin-top: -2.5px;
-  border-radius: 999px;
-  background: var(--primary);
-  box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 55%, transparent);
-}
-
 .home-mascot-image {
-  width: 88%;
-  height: 88%;
-  object-fit: cover;
-  clip-path: polygon(14% 0, 86% 0, 100% 14%, 100% 86%, 86% 100%, 14% 100%, 0 86%, 0 14%);
-  mix-blend-mode: screen;
-  filter: saturate(1.08) contrast(1.08) brightness(1.05) drop-shadow(0 0 14px color-mix(in oklab, var(--primary) 13%, transparent));
+  width: 6.5rem;
+  height: auto;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 26px color-mix(in oklab, black 42%, transparent));
 }
 
 .home-brand-copy {
@@ -400,7 +343,7 @@
     gap: 2.5rem;
   }
 
-  .home-mascot-emblem {
+  .home-mascot-image {
     width: 6.5rem;
   }
 }
@@ -414,7 +357,7 @@
     align-items: flex-start;
   }
 
-  .home-mascot-emblem {
+  .home-mascot-image {
     width: 4.9rem;
   }
 
@@ -475,17 +418,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .home-mascot-orbit {
-    animation: home-orbit 12s linear infinite;
-  }
-
-  .home-mascot-emblem:hover .home-mascot-image {
+  .home-mascot-image:hover {
     transform: translateY(-2px) scale(1.02);
   }
 
   .home-mascot-image {
     transition: transform 180ms ease, filter 180ms ease;
   }
+
 
   .home-process-marker {
     transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
@@ -497,13 +437,9 @@
     box-shadow: 0 0 28px color-mix(in oklab, var(--primary) 12%, transparent);
   }
 
-  @keyframes home-orbit {
-    to { transform: rotate(360deg); }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-mascot-orbit,
   .home-mascot-image,
   .home-process-marker {
     animation: none !important;
