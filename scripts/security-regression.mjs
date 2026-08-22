@@ -53,7 +53,7 @@ const legacyRevoke = read('supabase/migrations/20260820102000_revoke_legacy_part
 const authenticatedReadLimits = read('supabase/migrations/20260820111000_rate_limit_authenticated_room_reads.sql');
 const usernameSafety = read('supabase/migrations/20260820113000_reject_invisible_username_spoofing.sql');
 const cleanup = read('supabase/migrations/20260819124500_five_minute_ttl_and_cleanup.sql');
-const fixedLifetime = read('supabase/migrations/20260819143000_fixed_lobby_lifetime_and_capacity.sql');
+const activityLifetime = read('supabase/migrations/20260821050000_activity_driven_lobby_extension.sql');
 
 check(!/dangerouslySetInnerHTML\s*=/.test(source), 'No dangerouslySetInnerHTML in EZNOOBS application source');
 check(
@@ -68,6 +68,7 @@ check(!/throw\s+new\s+Error\(\s*error\.message\s*\)/.test(source), 'Browser-faci
 check(!/return\s+message\s*;/.test(lobbyFunctions), 'Lobby RPC error mapper never returns arbitrary database errors');
 
 check(/PUBLIC_SUPABASE_PUBLISHABLE_KEY\s*=\s*['"]sb_publishable_/.test(client), 'Browser client uses a publishable Supabase key');
+check(client.includes("value.startsWith('sb_secret_')") && client.includes('must never be exposed to the browser'), 'Browser client rejects accidental Supabase secret keys');
 check(/lobbyChannelName\(lobby\.code,\s*realtimeToken\)/.test(room), 'Room realtime subscription uses the joined-only tokenized topic');
 check(!/\.channel\(\s*[`'"]room:/.test(room), 'Room route does not directly subscribe to a short-code-only realtime topic');
 check(/sessionStorage\.setItem\(key,\s*token\)/.test(secureRealtimeLayer), 'Realtime token is stored in sessionStorage only');
@@ -198,8 +199,8 @@ check(cleanup.includes('message_body text') && cleanup.includes('message_nicknam
 
 check(/cron\.schedule\([\s\S]*eznoobs-purge-expired-lobbies[\s\S]*\* \* \* \* \*/.test(cleanup), 'Expired lobby hard-delete cron is declared');
 check(/DELETE FROM public\.lobbies\s+WHERE expires_at <= now\(\)/.test(cleanup), 'Expired lobby cleanup hard-deletes lobby rows');
-check(/NEW\.expires_at\s*:=\s*NEW\.created_at\s*\+/.test(fixedLifetime), 'Lobby expiry is anchored to creation time');
-check(/NEW\.expires_at\s*:=\s*OLD\.expires_at/.test(fixedLifetime), 'Lobby expiry cannot be extended by activity updates');
+check(/v_max_expires_at\s*:=\s*v_lobby\.created_at[\s\S]*lobby_max_duration_minutes/.test(activityLifetime), 'Current room lifetime hard cap is anchored to original creation time');
+check(/LEAST\([\s\S]*v_max_expires_at[\s\S]*v_lobby\.expires_at\s*\+/.test(activityLifetime), 'Activity extension is clamped to the configured absolute lifetime cap');
 
 if (failures.length) {
   console.error(`\nEZNOOBS security regression check FAILED (${failures.length})`);

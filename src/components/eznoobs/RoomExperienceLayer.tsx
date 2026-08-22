@@ -48,6 +48,8 @@ const GAME_OPENERS: Record<string, string[]> = {
   Other: ["GG", "WHO THREW?", "EZ?", "RUN IT BACK", "ONE MORE."],
 };
 
+const DEFAULT_OPENERS = GAME_OPENERS["Other"] ?? ["GG", "RUN IT BACK"];
+
 function hashIdentity(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -64,10 +66,10 @@ function teamFromAvatar(avatar: HTMLElement) {
 }
 
 function decorateAvatar(avatar: HTMLElement, identity: string) {
-  if (!identity || avatar.dataset.ezIdentityReady === "true") return;
+  if (!identity || avatar.dataset["ezIdentityReady"] === "true") return;
   const hash = hashIdentity(identity.toLowerCase());
-  avatar.dataset.ezIdentityReady = "true";
-  avatar.dataset.ezSigil = String(hash % 6);
+  avatar.dataset["ezIdentityReady"] = "true";
+  avatar.dataset["ezSigil"] = String(hash % 6);
   avatar.style.setProperty("--ez-sigil-hue", String(hash % 360));
   avatar.style.setProperty("--ez-sigil-rotate", `${hash % 180}deg`);
 }
@@ -79,7 +81,7 @@ function decorateMessage(card: HTMLElement) {
     .querySelector<HTMLElement>("span.font-mono.text-xs.font-semibold")
     ?.textContent?.trim();
   if (nickname) decorateAvatar(avatar, nickname);
-  card.dataset.ezTeam = teamFromAvatar(avatar);
+  card.dataset["ezTeam"] = teamFromAvatar(avatar);
 }
 
 function decoratePlayer(row: HTMLElement, recent = false) {
@@ -95,12 +97,12 @@ function decoratePlayer(row: HTMLElement, recent = false) {
     ?.textContent?.replace(/you$/i, "")
     .trim();
   if (nickname) decorateAvatar(avatar, nickname);
-  row.dataset.ezTeam = teamFromAvatar(avatar);
-  if (recent && row.dataset.ezSeen !== "true") {
+  row.dataset["ezTeam"] = teamFromAvatar(avatar);
+  if (recent && row.dataset["ezSeen"] !== "true") {
     row.classList.add("ez-player-new");
     window.setTimeout(() => row.classList.remove("ez-player-new"), 1900);
   }
-  row.dataset.ezSeen = "true";
+  row.dataset["ezSeen"] = "true";
 }
 
 function decorateExisting(root: ParentNode, recentPlayers = false) {
@@ -151,7 +153,7 @@ export function RoomExperienceLayer() {
 
   useEffect(() => {
     if (!isRoom) {
-      delete document.documentElement.dataset.ezSalt;
+      delete document.documentElement.dataset["ezSalt"];
       previousSalt.current = null;
       setShowQuickFire(false);
       setNuclearBurst(false);
@@ -174,8 +176,8 @@ export function RoomExperienceLayer() {
 
         const saltNode =
           document.querySelector<HTMLElement>("[data-salt-level]");
-        const salt = saltNode?.dataset.saltLevel ?? null;
-        if (salt) document.documentElement.dataset.ezSalt = salt;
+        const salt = saltNode?.dataset["saltLevel"] ?? null;
+        if (salt) document.documentElement.dataset["ezSalt"] = salt;
 
         if (
           salt &&
@@ -239,13 +241,13 @@ export function RoomExperienceLayer() {
       if (frame) cancelAnimationFrame(frame);
       if (nuclearTimer.current) clearTimeout(nuclearTimer.current);
       observer.disconnect();
-      delete document.documentElement.dataset.ezSalt;
+      delete document.documentElement.dataset["ezSalt"];
       previousSalt.current = null;
     };
   }, [isRoom]);
 
   if (!isRoom) return null;
-  const openers = GAME_OPENERS[game] ?? GAME_OPENERS.Other;
+  const openers = GAME_OPENERS[game] ?? DEFAULT_OPENERS;
 
   return (
     <>

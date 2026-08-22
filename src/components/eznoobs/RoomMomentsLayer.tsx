@@ -14,8 +14,8 @@ function playerName(row: HTMLElement) {
 }
 
 function playerTone(row: HTMLElement): MomentTone {
-  if (row.dataset.ezTeam === "blue" || row.querySelector('[class*="blue-team"]')) return "blue";
-  if (row.dataset.ezTeam === "red" || row.querySelector('[class*="red-team"]')) return "red";
+  if (row.dataset["ezTeam"] === "blue" || row.querySelector('[class*="blue-team"]')) return "blue";
+  if (row.dataset["ezTeam"] === "red" || row.querySelector('[class*="red-team"]')) return "red";
   return "neutral";
 }
 
@@ -28,7 +28,7 @@ export function RoomMomentsLayer() {
   const previousSalt = useRef<string | null>(null);
   const previousRunback = useRef("");
   const counter = useRef(0);
-  const timers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const timers = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!isRoom) {
@@ -76,8 +76,8 @@ export function RoomMomentsLayer() {
         }
 
         const salt =
-          document.querySelector<HTMLElement>("[data-salt-level]")?.dataset.saltLevel ??
-          document.documentElement.dataset.ezSalt ??
+          document.querySelector<HTMLElement>("[data-salt-level]")?.dataset["saltLevel"] ??
+          document.documentElement.dataset["ezSalt"] ??
           null;
         if (salt && previousSalt.current && salt !== previousSalt.current) {
           const climbed = (SALT_RANK[salt] ?? 0) > (SALT_RANK[previousSalt.current] ?? 0);
@@ -122,7 +122,7 @@ export function RoomMomentsLayer() {
     return () => {
       if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
-      for (const timer of timers.current) clearTimeout(timer);
+      for (const timer of timers.current) window.clearTimeout(timer);
       timers.current.clear();
     };
   }, [isRoom]);

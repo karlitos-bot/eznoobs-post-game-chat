@@ -18,6 +18,7 @@ const identity = read('src/lib/eznoobs.ts');
 const diagnostics = read('src/lib/lovable-error-reporting.ts');
 const privacy = read('src/routes/privacy.tsx');
 const server = read('src/server.ts');
+const styles = read('src/styles.css');
 const robots = read('public/robots.txt');
 const room = read('src/routes/room.$code.tsx');
 const gate = read('src/components/eznoobs/FirstUseSafetyGate.tsx');
@@ -35,6 +36,9 @@ check(!diagnostics.includes('route: window.location.pathname'), 'Raw room pathna
 check(server.includes('Cache-Control') && server.includes('no-store, max-age=0'), 'Private surfaces receive no-store cache policy');
 check(server.includes('X-Robots-Tag') && server.includes('noindex, nofollow, noarchive'), 'Private surfaces receive crawler-blocking response headers');
 check(server.includes('/^\\/room\\//i') && server.includes('/^\\/ops(?:\\/|$)/i'), 'No-store/crawler policy targets room and ops paths');
+check(!server.includes('fonts.googleapis.com') && !server.includes('fonts.gstatic.com'), 'CSP does not allow remote Google font hosts');
+check(!styles.includes('fonts.googleapis.com') && !styles.includes('fonts.gstatic.com'), 'Styles do not load fonts from Google at runtime');
+check(styles.includes('@fontsource/oxanium') && styles.includes('@fontsource/chakra-petch') && styles.includes('@fontsource/share-tech-mono'), 'Brand fonts are bundled locally');
 check(robots.includes('Disallow: /ops/'), 'Robots policy excludes private ops paths');
 check(room.includes('{ name: "robots", content: "noindex" }'), 'Room route remains marked noindex in page metadata');
 

@@ -11,7 +11,14 @@ const REALTIME_TOKEN_EVENT = 'eznoobs:realtime-token-ready';
 const realtimeTokenStorageKey = (code: string) => `eznoobs_realtime_token:${code}`;
 
 function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+  return value.startsWith('sb_publishable_');
+}
+
+function ensureBrowserSafeSupabaseKey(value: string): string {
+  if (value.startsWith('sb_secret_')) {
+    throw new Error('A Supabase secret key must never be exposed to the browser.');
+  }
+  return value;
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
@@ -39,12 +46,13 @@ function createSupabaseClient() {
     import.meta.env['VITE_SUPABASE_URL'] ||
     serverEnv?.['SUPABASE_URL'] ||
     PUBLIC_SUPABASE_URL;
-  const SUPABASE_KEY =
+  const SUPABASE_KEY = ensureBrowserSafeSupabaseKey(
     import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
-    import.meta.env['VITE_SUPABASE_ANON_KEY'] ||
-    serverEnv?.['SUPABASE_PUBLISHABLE_KEY'] ||
-    serverEnv?.['SUPABASE_ANON_KEY'] ||
-    PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      import.meta.env['VITE_SUPABASE_ANON_KEY'] ||
+      serverEnv?.['SUPABASE_PUBLISHABLE_KEY'] ||
+      serverEnv?.['SUPABASE_ANON_KEY'] ||
+      PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     global: {
