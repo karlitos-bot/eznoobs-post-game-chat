@@ -1,14 +1,12 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-@import "@fontsource/barlow-condensed/600.css";
-@import "@fontsource/barlow-condensed/700.css";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/oxanium/600.css";
+@import "@fontsource/oxanium/700.css";
+@import "@fontsource/chakra-petch/400.css";
+@import "@fontsource/chakra-petch/500.css";
+@import "@fontsource/chakra-petch/600.css";
+@import "@fontsource/share-tech-mono/400.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -40,9 +38,9 @@
   --color-red-team: var(--red-team);
   --color-spectator: var(--spectator);
   --color-surface: var(--surface);
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Oxanium", "Arial Narrow", sans-serif;
+  --font-sans: "Chakra Petch", system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -87,12 +85,20 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-weight: 400;
+    letter-spacing: 0.005em;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   button,
   [role="button"] {
     touch-action: manipulation;
+  }
+  button:not([class*="font-mono"]),
+  [role="button"]:not([class*="font-mono"]) {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.035em;
   }
   button:focus-visible,
   a:focus-visible,
@@ -105,7 +111,7 @@
   h1, h2, h3, .display {
     font-family: var(--font-display);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.035em;
     font-weight: 700;
   }
   ::selection {
@@ -141,7 +147,7 @@
 @utility hud-label {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted-foreground);
 }
