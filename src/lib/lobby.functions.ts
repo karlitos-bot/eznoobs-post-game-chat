@@ -58,7 +58,7 @@ const joinSchema = z.object({
 });
 
 export const createLobby = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => createSchema.parse(d))
+  .validator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const guest = splitGuestCredential(data.guestId);
@@ -80,7 +80,7 @@ export const createLobby = createServerFn({ method: "POST" })
   });
 
 export const joinLobby = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => joinSchema.parse(d))
+  .validator((d: unknown) => joinSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const guest = splitGuestCredential(data.guestId);
@@ -112,7 +112,7 @@ export const joinLobby = createServerFn({ method: "POST" })
   });
 
 export const sendMessage = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         code: codeSchema,
@@ -146,7 +146,7 @@ export const sendMessage = createServerFn({ method: "POST" })
   });
 
 export const getLobby = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ code: codeSchema, guestId: guestSchema.optional() }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -185,7 +185,7 @@ export const getLobby = createServerFn({ method: "GET" })
   });
 
 export const reportMessage = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         code: codeSchema,
@@ -213,7 +213,7 @@ export const reportMessage = createServerFn({ method: "POST" })
   });
 
 export const touchPresence = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .validator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const guest = splitGuestCredential(data.guestId);
@@ -229,7 +229,7 @@ export const touchPresence = createServerFn({ method: "POST" })
   });
 
 export const toggleReaction = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         code: codeSchema,
@@ -259,7 +259,7 @@ export const toggleReaction = createServerFn({ method: "POST" })
   });
 
 export const toggleRematchVote = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .validator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const guest = splitGuestCredential(data.guestId);
@@ -278,7 +278,7 @@ export const toggleRematchVote = createServerFn({ method: "POST" })
   });
 
 export const leaveLobby = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
+  .validator((d: unknown) => z.object({ code: codeSchema, guestId: guestSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const guest = splitGuestCredential(data.guestId);
