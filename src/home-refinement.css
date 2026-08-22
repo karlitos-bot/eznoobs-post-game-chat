@@ -27,8 +27,7 @@
 }
 
 .home-mascot-image {
-  width: 6rem;
-  aspect-ratio: 1;
+  width: 6.5rem;
   height: auto;
   flex: 0 0 auto;
   object-fit: contain;
