@@ -39,10 +39,15 @@ check(server.includes('/^\\/room\\//i') && server.includes('/^\\/ops(?:\\/|$)/i'
 check(!server.includes('fonts.googleapis.com') && !server.includes('fonts.gstatic.com'), 'CSP does not allow remote Google font hosts');
 check(!styles.includes('fonts.googleapis.com') && !styles.includes('fonts.gstatic.com'), 'Styles do not load fonts from Google at runtime');
 check(styles.includes('@fontsource/oxanium') && styles.includes('@fontsource/chakra-petch') && styles.includes('@fontsource/share-tech-mono'), 'Brand fonts are bundled locally');
+check(!privacy.includes('loads its web typography from Google Fonts domains'), 'Privacy Policy does not falsely claim runtime Google Fonts requests');
+check(privacy.includes('does not request its brand typography from Google Fonts at runtime'), 'Privacy Policy accurately describes self-hosted typography');
+check(privacy.includes('Purposes and legal bases'), 'Privacy Policy includes purposes/legal-basis section');
+check(privacy.includes('Infrastructure, recipients and processors'), 'Privacy Policy includes processor/recipient categories');
+check(privacy.includes('does not currently use personal data for behavioural advertising or cross-site profiling'), 'Privacy Policy states current no-behavioural-advertising posture');
 check(robots.includes('Disallow: /ops/'), 'Robots policy excludes private ops paths');
 check(room.includes('{ name: "robots", content: "noindex" }'), 'Room route remains marked noindex in page metadata');
 
-check(gate.includes('eznoobs:legal-ack:v2'), 'Current legal assent is versioned');
+check(gate.includes('eznoobs:legal-ack:v3'), 'Current legal assent is versioned for the August 22 policy update');
 check(gate.includes('agree to the Terms of Service'), 'First-use gate explicitly records Terms assent');
 check(gate.includes('LEGAL_PATHS') && gate.includes('"/legal"'), 'Legal hub remains readable before assent');
 
