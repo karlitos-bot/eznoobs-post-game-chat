@@ -10,11 +10,47 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CommunityRulesRouteImport } from './routes/community-rules'
+import { Route as LegalRouteImport } from './routes/legal'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as OpsEnforcementRouteImport } from './routes/ops.enforcement'
+import { Route as OpsModerationRouteImport } from './routes/ops.moderation'
 import { Route as RoomCodeRouteImport } from './routes/room.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityRulesRoute = CommunityRulesRouteImport.update({
+  id: '/community-rules',
+  path: '/community-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsEnforcementRoute = OpsEnforcementRouteImport.update({
+  id: '/ops/enforcement',
+  path: '/ops/enforcement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsModerationRoute = OpsModerationRouteImport.update({
+  id: '/ops/moderation',
+  path: '/ops/moderation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoomCodeRoute = RoomCodeRouteImport.update({
@@ -25,27 +61,76 @@ const RoomCodeRoute = RoomCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/community-rules': typeof CommunityRulesRoute
+  '/legal': typeof LegalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/ops/enforcement': typeof OpsEnforcementRoute
+  '/ops/moderation': typeof OpsModerationRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/community-rules': typeof CommunityRulesRoute
+  '/legal': typeof LegalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/ops/enforcement': typeof OpsEnforcementRoute
+  '/ops/moderation': typeof OpsModerationRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/community-rules': typeof CommunityRulesRoute
+  '/legal': typeof LegalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/ops/enforcement': typeof OpsEnforcementRoute
+  '/ops/moderation': typeof OpsModerationRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/room/$code'
+  fullPaths:
+    | '/'
+    | '/community-rules'
+    | '/legal'
+    | '/privacy'
+    | '/terms'
+    | '/ops/enforcement'
+    | '/ops/moderation'
+    | '/room/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/room/$code'
-  id: '__root__' | '/' | '/room/$code'
+  to:
+    | '/'
+    | '/community-rules'
+    | '/legal'
+    | '/privacy'
+    | '/terms'
+    | '/ops/enforcement'
+    | '/ops/moderation'
+    | '/room/$code'
+  id:
+    | '__root__'
+    | '/'
+    | '/community-rules'
+    | '/legal'
+    | '/privacy'
+    | '/terms'
+    | '/ops/enforcement'
+    | '/ops/moderation'
+    | '/room/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommunityRulesRoute: typeof CommunityRulesRoute
+  LegalRoute: typeof LegalRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
+  OpsEnforcementRoute: typeof OpsEnforcementRoute
+  OpsModerationRoute: typeof OpsModerationRoute
   RoomCodeRoute: typeof RoomCodeRoute
 }
 
@@ -56,6 +141,48 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community-rules': {
+      id: '/community-rules'
+      path: '/community-rules'
+      fullPath: '/community-rules'
+      preLoaderRoute: typeof CommunityRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/enforcement': {
+      id: '/ops/enforcement'
+      path: '/ops/enforcement'
+      fullPath: '/ops/enforcement'
+      preLoaderRoute: typeof OpsEnforcementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/moderation': {
+      id: '/ops/moderation'
+      path: '/ops/moderation'
+      fullPath: '/ops/moderation'
+      preLoaderRoute: typeof OpsModerationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/room/$code': {
@@ -70,6 +197,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommunityRulesRoute: CommunityRulesRoute,
+  LegalRoute: LegalRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
+  OpsEnforcementRoute: OpsEnforcementRoute,
+  OpsModerationRoute: OpsModerationRoute,
   RoomCodeRoute: RoomCodeRoute,
 }
 export const routeTree = rootRouteImport
