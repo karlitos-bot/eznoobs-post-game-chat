@@ -85,6 +85,11 @@ export function RoomClarityLayer() {
           });
           secondaryRow?.classList.add("ez-room-secondary-row");
 
+          // The persistent personality dock now owns Salt. Hide the small legacy header meter
+          // instead of showing two competing Salt readouts.
+          const legacySaltMeter = secondaryRow?.querySelector<HTMLElement>("[data-salt-level]");
+          legacySaltMeter?.parentElement?.classList.add("ez-clarity-hide");
+
           for (const element of header.querySelectorAll<HTMLElement>("p, span, div")) {
             const text = cleanText(element);
 
@@ -169,10 +174,21 @@ export function RoomClarityLayer() {
         const pickOwn = openingLabels.find((element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN");
         pickOwn?.classList.add("ez-clarity-hide");
 
-        const soundButton = document.querySelector<HTMLElement>(
-          'button[aria-label^="Turn lobby sounds"]',
+        const saltStatus = document.querySelector<HTMLElement>(
+          '[role="status"][aria-label^="Salt-O-Meter"]',
         );
-        soundButton?.classList.add("ez-sound-control-clean");
+        const personalityDock = saltStatus?.closest<HTMLElement>("div.fixed") ?? null;
+        personalityDock?.classList.add("ez-personality-dock-clean");
+
+        // Keep the legacy floating sound control hidden, but do not hide the sound toggle that
+        // now lives inside the Salt-O-Meter / Quick Shots dock.
+        for (const soundButton of document.querySelectorAll<HTMLElement>(
+          'button[aria-label^="Turn lobby sounds"]',
+        )) {
+          if (!soundButton.closest(".ez-personality-dock-clean")) {
+            soundButton.classList.add("ez-sound-control-clean");
+          }
+        }
 
         for (const feed of document.querySelectorAll<HTMLElement>("div.pointer-events-none.fixed")) {
           if (feed.querySelector(".animate-in")) feed.classList.add("ez-activity-feed-clean");
@@ -200,12 +216,20 @@ export function RoomClarityLayer() {
           // screen readers repeatedly announce names entering/leaving the typing state.
           activityStrip.setAttribute("aria-live", "off");
           activityStrip.removeAttribute("aria-atomic");
+
+          // Salt is now represented by the persistent meter above the composer.
+          for (const child of Array.from(activityStrip.children)) {
+            if (cleanText(child).includes("SALT")) child.classList.add("ez-clarity-hide");
+          }
         }
 
         const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
         const composerForm = composer?.closest<HTMLElement>("form") ?? null;
         composerForm?.classList.add("ez-composer-clean");
         attachComposerGeometry(composerForm);
+        // The personality dock can mount after the composer geometry observer is attached.
+        // Refresh the CSS variables whenever the DOM layer changes so it snaps above composer.
+        measureComposer();
 
         const drawerOpener = document.querySelector<HTMLButtonElement>(
           'button[aria-label^="Open player list"]',
