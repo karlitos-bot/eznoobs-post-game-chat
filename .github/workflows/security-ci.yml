@@ -40,6 +40,9 @@ jobs:
       - name: Performance regression checks
         run: npm run performance:check
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Lint
         run: npm run lint
 
