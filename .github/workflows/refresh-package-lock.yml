@@ -1,0 +1,28 @@
+name: Refresh package lock
+
+on:
+  push:
+    branches:
+      - fix/room-personality-fonts
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Regenerate npm lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Emit compressed lockfile
+        shell: bash
+        run: |
+          echo 'EZNOOBS_LOCKFILE_BASE64_BEGIN'
+          gzip -c package-lock.json | base64 -w0
+          echo
+          echo 'EZNOOBS_LOCKFILE_BASE64_END'
