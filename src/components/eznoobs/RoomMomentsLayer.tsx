@@ -40,15 +40,17 @@ export function RoomMomentsLayer() {
       return;
     }
 
+    const effectTimers = timers.current;
+
     const pushMoment = (text: string, tone: MomentTone = "neutral") => {
       counter.current += 1;
       const id = Date.now() + counter.current;
       setMoments((current) => [...current.slice(-2), { id, text, tone }]);
       const timer = window.setTimeout(() => {
-        timers.current.delete(timer);
+        effectTimers.delete(timer);
         setMoments((current) => current.filter((moment) => moment.id !== id));
       }, 2600);
-      timers.current.add(timer);
+      effectTimers.add(timer);
     };
 
     let frame = 0;
@@ -122,8 +124,8 @@ export function RoomMomentsLayer() {
     return () => {
       if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
-      for (const timer of timers.current) window.clearTimeout(timer);
-      timers.current.clear();
+      for (const timer of effectTimers) window.clearTimeout(timer);
+      effectTimers.clear();
     };
   }, [isRoom]);
 
