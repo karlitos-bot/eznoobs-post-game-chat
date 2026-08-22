@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ShieldCheck, Skull, UserRoundCheck } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
-const LEGAL_ACK_KEY = "eznoobs:legal-ack:v2";
+const LEGAL_ACK_KEY = "eznoobs:legal-ack:v3";
 const RULES_ACK_KEY = "eznoobs:rules-ack:v1";
 const ROOM_PATH_RE = /^\/room\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}\/?$/i;
 const LEGAL_PATHS = new Set(["/legal", "/community-rules", "/privacy", "/terms"]);

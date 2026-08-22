@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy Policy — EZNOOBS" },
       {
         name: "description",
-        content: "How EZNOOBS handles temporary room data, browser preferences, moderation events and reports.",
+        content: "How EZNOOBS handles temporary room data, browser storage, safety evidence and privacy rights.",
       },
     ],
   }),
@@ -20,8 +20,8 @@ function PrivacyPolicy() {
     <LegalPage
       eyebrow="Privacy"
       title="Privacy Policy"
-      updated="August 21, 2026"
-      intro="EZNOOBS is designed around temporary post-game rooms, not permanent social profiles. This policy explains what the service needs to process, what disappears with a room, and what limited safety evidence may be kept for longer."
+      updated="August 22, 2026"
+      intro="EZNOOBS is designed around temporary post-game rooms, not permanent social profiles. This policy explains what the service needs to process, why it is processed, what disappears with a room, and what limited safety or legal evidence may be kept for longer."
       sections={[
         {
           title: "No account required",
@@ -44,9 +44,18 @@ function PrivacyPolicy() {
           ],
         },
         {
-          title: "Browser preferences",
+          title: "Purposes and legal bases",
           body: [
-            "EZNOOBS may remember lightweight choices in your browser, such as your last nickname/team/game, sound preference, and whether you have already acknowledged the 18+ / Terms and lobby-rules notices. These preferences reduce repeated setup and are not public profiles.",
+            "EZNOOBS processes temporary room and guest data to provide the service you request when you create or join a lobby, to operate the service under the Terms of Service, and to keep rooms reliable and secure.",
+            "Security, anti-abuse, moderation and service-protection processing is carried out where necessary for EZNOOBS's legitimate interests in operating a safe and resilient service and, where applicable, to comply with legal obligations. Formal illegal-content notices or other legally required records may also be processed where necessary to comply with applicable law.",
+            "EZNOOBS does not currently use personal data for behavioural advertising or cross-site profiling. If optional analytics or advertising technologies are introduced later, the privacy notice and consent controls will be updated before those technologies are enabled where consent is required.",
+          ],
+        },
+        {
+          title: "Browser storage and trackers",
+          body: [
+            "EZNOOBS may remember lightweight choices in your browser, such as your last nickname/team/game, sound preference, browser guest credential, and whether you have already acknowledged the 18+ / Terms and lobby-rules notices. These values reduce repeated setup and are not public profiles.",
+            "The current beta does not intentionally install advertising cookies or third-party audience-measurement cookies. If optional tracking or analytics is added later, it must remain disabled until any consent required by applicable law has been obtained.",
           ],
         },
         {
@@ -56,10 +65,11 @@ function PrivacyPolicy() {
           ],
         },
         {
-          title: "Reports",
+          title: "Reports and legal notices",
           body: [
             "When a participant reports a message, EZNOOBS preserves limited evidence so the report can still be reviewed after the temporary room disappears. This may include the reported message text, room code, temporary reporter/reported guest identifiers, displayed nickname/team, report reason and timestamp.",
             "Report evidence is configured for a 30-day retention period and is then eligible for automatic deletion. This is intentionally longer than normal room data because the report would otherwise disappear before it could be reviewed.",
+            "A separate electronic notice-and-action channel for allegedly illegal content is being prepared before wider public beta. Formal legal notices may require additional information, such as contact details, the exact location of the content, the legal reason for the notice and a good-faith confirmation. Any retention for those notices will be limited to what is reasonably necessary for handling the notice, legal obligations, disputes and accountability.",
           ],
         },
         {
@@ -77,25 +87,26 @@ function PrivacyPolicy() {
           ],
         },
         {
-          title: "Infrastructure and diagnostics",
+          title: "Infrastructure, recipients and processors",
           body: [
-            "EZNOOBS uses hosted infrastructure and database services to operate the site. Hosting, network, security and platform providers may process ordinary technical connection information such as IP addresses, request metadata and logs as part of delivering and protecting the service. EZNOOBS does not expose those technical details to other lobby participants.",
-            "Application diagnostics may record technical error details needed to investigate failures. Room codes are intentionally redacted from EZNOOBS client error-telemetry route labels so a temporary lobby code is not unnecessarily included in that diagnostic context.",
+            "EZNOOBS uses hosted infrastructure, database, realtime, network and development/deployment services to operate and protect the site. Those providers may process data only as needed to provide their services to EZNOOBS, subject to the provider terms and data-protection arrangements that apply to the production setup.",
+            "Hosting, network, security and platform providers may process ordinary technical connection information such as IP addresses, request metadata and logs as part of delivering and protecting the service. EZNOOBS does not expose those technical details to other lobby participants.",
+            "Before wider public beta, the production operator will document the final provider list, applicable processor agreements and any international-transfer mechanism required by the selected hosting/database setup.",
           ],
         },
         {
-          title: "External typography resource",
+          title: "Diagnostics and self-hosted typography",
           body: [
-            "The current beta loads its web typography from Google Fonts domains. When those resources are requested, Google may receive ordinary network information such as your IP address, browser/user-agent information and the requesting site origin. No EZNOOBS chat message or room credential is intentionally sent as part of the font request.",
-            "EZNOOBS plans to review self-hosting or removing this external font dependency before wider public beta to reduce unnecessary third-party requests.",
+            "Application diagnostics may record technical error details needed to investigate failures. Room codes are intentionally redacted from EZNOOBS client error-telemetry route labels so a temporary lobby code is not unnecessarily included in that diagnostic context.",
+            "EZNOOBS web fonts are bundled with the application and served by the EZNOOBS deployment. The current site does not request its brand typography from Google Fonts at runtime.",
           ],
         },
         {
           title: "Your choices and privacy rights",
           body: [
             "You can clear EZNOOBS browser storage through your browser/site-data controls to remove the locally remembered guest credential and preferences from that browser. Doing so creates a fresh browser identity the next time you use the service.",
-            "Depending on the law that applies to you, you may have rights relating to personal data such as access, correction, deletion, restriction, objection or complaint to a supervisory authority. Because EZNOOBS intentionally avoids registered accounts and most room data is short-lived, the service may have limited ability to connect a retained record to a real-world person without additional information from that person.",
-            "A dedicated privacy contact method will be published before wider public beta so applicable privacy requests can be handled through a clear channel.",
+            "Depending on the law that applies to you, you may have rights relating to personal data such as access, correction, deletion, restriction, objection, portability where applicable, or complaint to a supervisory authority. Because EZNOOBS intentionally avoids registered accounts and most room data is short-lived, the service may have limited ability to connect a retained record to a real-world person without additional information from that person.",
+            "A dedicated privacy contact method and the identity/contact details of the production data controller will be published before wider public beta so applicable privacy requests can be handled through a clear channel.",
           ],
         },
         {
@@ -105,13 +116,14 @@ function PrivacyPolicy() {
             "No direct-message system or friend graph is part of the current product.",
             "No public searchable history of your temporary rooms or messages is provided.",
             "The current chat architecture does not use browser-to-browser WebRTC/P2P connections for lobby messaging.",
+            "The current beta does not provide user image uploads, file uploads or voice chat.",
           ],
         },
         {
           title: "Changes and contact",
           body: [
-            "EZNOOBS is still being prepared for public beta, so this policy may be updated as features or infrastructure change. The Last updated date will change when material wording changes.",
-            "A dedicated privacy/support contact method will be published on EZNOOBS before the wider public-beta launch. Until then, this page describes the current beta data model and retention rules.",
+            "EZNOOBS is still being prepared for public beta, so this policy may be updated as features, providers or legal requirements change. The Last updated date will change when material wording changes.",
+            "A dedicated privacy/support/legal contact method and final controller information will be published on EZNOOBS before the wider public-beta launch. Until then, this page describes the current beta data model and retention rules and should receive qualified legal review before commercial or large-scale launch.",
           ],
         },
       ]}

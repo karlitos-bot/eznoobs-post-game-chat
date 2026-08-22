@@ -1,6 +1,6 @@
 # EZNOOBS — Pre-Domain Stability Checkpoint
 
-This checkpoint separates code-level verification from the manual browser tests that must still be completed on the published build before calling the public beta ready.
+This checkpoint separates code-level verification from the manual browser and legal/operational checks that must still be completed on the published build before calling the public beta ready.
 
 ## Automated / repository checks
 
@@ -41,6 +41,19 @@ This checkpoint separates code-level verification from the manual browser tests 
 - [x] Responsive/mobile and accessibility layers.
 - [x] Self-hosted EZNOOBS typography and final wordmark/mascot branding.
 
+## Legal/safety hardening implemented in-repo
+
+- [x] Privacy wording matches self-hosted fonts and no longer claims Google Fonts runtime requests.
+- [x] Privacy Policy documents purposes/legal-basis categories, processors/recipients and planned transfer review.
+- [x] Community Rules explicitly separate normal trash talk from serious/illegal real-world harm.
+- [x] Terms distinguish community reports from formal illegal-content notices.
+- [x] Terms/Legal hub include an independent-service/no-endorsement statement for third-party games.
+- [x] Legal acknowledgement is versioned for the August 22 policy update.
+- [x] Internal data-processing map exists (`docs/DATA_PROCESSING_MAP.md`).
+- [x] Internal illegal-content/urgent-safety runbook exists (`docs/DSA_NOTICE_AND_INCIDENT_RUNBOOK.md`).
+- [x] Third-party game IP policy exists (`docs/THIRD_PARTY_GAME_IP.md`).
+- [x] Public Legal & Safety hub clearly marks the illegal-content intake as a pre-launch blocker rather than pretending a non-functional channel exists.
+
 ## Manual release checks still required
 
 Use `docs/PRE_BETA_QA.md` for the full procedure. At minimum before connecting the production domain:
@@ -60,6 +73,19 @@ Use `docs/PRE_BETA_QA.md` for the full procedure. At minimum before connecting t
 - [ ] Published response headers are checked on `/room/{CODE}` and `/ops/*`.
 - [ ] Social/share preview is checked after the custom domain is connected.
 
+## Legal/operational release blockers still required
+
+Follow `docs/LEGAL_RELEASE_GATE.md` before wider public beta:
+
+- [ ] Final production operator/controller identity is decided and published with legally appropriate contact information.
+- [ ] Dedicated legal/privacy/support electronic contact channels are live and monitored.
+- [ ] Formal illegal-content notice-and-action intake is genuinely functional (not just a policy description).
+- [ ] Notice receipt/decision communications and an urgent life/safety escalation procedure are operational.
+- [ ] Final production hosting/database/email providers and applicable data-protection agreements/transfers are documented.
+- [ ] Privacy-rights request process is operational.
+- [ ] Preliminary EZNOOBS trademark/name search is completed; professional clearance is considered before major commercial investment.
+- [ ] Final Greek/EU lawyer review is completed before commercial or large-scale launch.
+
 ## Domain readiness rule
 
-Connect `eznoobs.com` only after CI is fully green (including typecheck, lint and production build) and the manual browser checks above have no release-blocking failures.
+Buying/holding `eznoobs.com` is fine before all release checks are complete. **Do not call the site wider-public-beta ready or actively promote public use** until CI is fully green, the manual browser tests have no release-blocking failures, and the legal/operational blockers above are resolved.

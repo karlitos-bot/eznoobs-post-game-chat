@@ -73,7 +73,7 @@ check(activityCooldown.includes('private.lobby_activity_extension_cooldown_secon
 check(activityCooldown.includes('v_lobby.last_extended_at IS NULL'), 'First eligible late-room activity may extend immediately');
 check(activityCooldown.includes('last_extended_at = CASE WHEN v_extended THEN now() ELSE last_extended_at END'), 'Extension timestamp changes only when time was actually added');
 
-check(firstUseGate.includes('eznoobs:legal-ack:v2'), '18+ and Terms assent is versioned and remembered locally');
+check(firstUseGate.includes('eznoobs:legal-ack:v3'), '18+ and Terms assent is versioned and remembered locally');
 check(firstUseGate.includes('eznoobs:rules-ack:v1'), 'Lobby rules acknowledgment is remembered locally');
 check(firstUseGate.includes('EZNOOBS is an adults-only beta built for temporary post-game chat.'), 'First-use explanation stays short and product-focused');
 check(firstUseGate.includes('I confirm that I am 18 years old or older and agree to the Terms of Service.'), 'First-use gate requires explicit age and Terms assent');

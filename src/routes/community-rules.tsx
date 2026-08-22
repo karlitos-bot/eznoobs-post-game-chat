@@ -8,7 +8,7 @@ export const Route = createFileRoute("/community-rules")({
       { title: "Community Rules — EZNOOBS" },
       {
         name: "description",
-        content: "The EZNOOBS community rules: trash talk is welcome, hate, threats and doxxing are not.",
+        content: "The EZNOOBS community rules: trash talk is welcome, real-world abuse and illegal content are not.",
       },
     ],
   }),
@@ -20,7 +20,7 @@ function CommunityRules() {
     <LegalPage
       eyebrow="Community standard"
       title="Community Rules"
-      updated="August 21, 2026"
+      updated="August 22, 2026"
       intro="EZNOOBS is built for the few minutes after a match when people still have something to say. Trash talk is part of the point. Real-world abuse is not. Keep it about the game, the play and the rivalry."
       sections={[
         {
@@ -49,7 +49,16 @@ function CommunityRules() {
             "No slurs or hateful attacks targeting race, ethnicity, nationality, sex, gender, religion, disability or other protected identity characteristics.",
             "No threats of violence, sexual violence, swatting, stalking or real-world intimidation.",
             "No doxxing. Do not post another person's address, phone number, email, IP address, social handle or other private contact/location information.",
+            "No sexual exploitation, child sexual abuse material, grooming, trafficking content or attempts to facilitate sexual abuse or exploitation.",
+            "No content intended to facilitate terrorism, serious violent crime, fraud, malware distribution or other unlawful real-world harm.",
             "Do not use usernames, messages or room behavior to harass, impersonate or deliberately disrupt other people or the service.",
+          ],
+        },
+        {
+          title: "Links, scams and unlawful material",
+          body: [
+            "EZNOOBS chat is not a marketplace, file host or link-distribution service. Do not use temporary rooms to distribute stolen credentials, malicious software, phishing attempts, illegal goods/services, pirated material or other content you are not legally entitled to share.",
+            "Game arguments are welcome. Attempts to move a room into real-world fraud, exploitation or criminal activity are not.",
           ],
         },
         {
@@ -59,16 +68,24 @@ function CommunityRules() {
           ],
         },
         {
-          title: "Reporting",
+          title: "Community reports",
           body: [
-            "A report preserves a limited snapshot of the reported message so it can be reviewed after the temporary room disappears. Reports are signals for review, not automatic proof that someone broke the rules.",
+            "A normal in-room report preserves a limited snapshot of the reported message so it can be reviewed after the temporary room disappears. Reports are signals for review, not automatic proof that someone broke the rules.",
             "Do not abuse the report system to punish someone for ordinary trash talk, losing a match or disagreeing with you.",
+          ],
+        },
+        {
+          title: "Illegal-content notices",
+          body: [
+            "A community report and a formal allegation that specific content is illegal are not the same thing. EZNOOBS is preparing a dedicated electronic notice-and-action channel for allegedly illegal content before wider public beta.",
+            "If there is an immediate threat to someone's life or safety, do not rely only on an EZNOOBS report. Contact the appropriate emergency or law-enforcement service and provide EZNOOBS with the exact room/content information through the legal notice channel once available.",
           ],
         },
         {
           title: "Enforcement",
           body: [
             "EZNOOBS may block content, rate-limit actions, restrict a session or take stronger action against repeated or serious abuse. Enforcement is intended to target behavior that crosses the safety line without treating normal game trash talk as a violation.",
+            "Serious safety or legal cases may require preserving limited evidence for longer than the room itself, as described in the Privacy Policy.",
           ],
         },
         {
