@@ -133,7 +133,7 @@ function Home() {
           <div className="home-hero-copy rise-in">
             <div className="home-brand-lockup">
               <img
-                src="/eznoobs-mark.svg"
+                src="/eznoobs-mascot.png"
                 alt="EZNOOBS gaming mascot"
                 className="home-mascot-image select-none"
                 draggable={false}
