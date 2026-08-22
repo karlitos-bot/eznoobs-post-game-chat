@@ -65,15 +65,19 @@
   --border: oklch(0.275 0.013 260);
   --input: oklch(0.29 0.012 260);
   --ring: oklch(0.88 0.225 128);
-  --blue-team: oklch(0.70 0.17 245);
+  --blue-team: oklch(0.7 0.17 245);
   --red-team: oklch(0.67 0.205 22);
   --spectator: oklch(0.73 0.02 260);
 }
 
-.dark { color-scheme: dark; }
+.dark {
+  color-scheme: dark;
+}
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   html {
     color-scheme: dark;
     background: var(--background);
@@ -108,7 +112,10 @@
     outline: 2px solid color-mix(in oklab, var(--primary) 72%, white 8%);
     outline-offset: 2px;
   }
-  h1, h2, h3, .display {
+  h1,
+  h2,
+  h3,
+  .display {
     font-family: var(--font-display);
     text-transform: uppercase;
     letter-spacing: 0.035em;
@@ -133,7 +140,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:focus-within { scroll-behavior: auto; }
+  html:focus-within {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
@@ -154,22 +163,46 @@
 
 @utility grid-bg {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--border) 48%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--border) 48%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--border) 48%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--border) 48%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 54px 54px;
 }
 
 @utility micro-grid {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--border) 32%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--border) 32%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--border) 32%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--border) 32%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 18px 18px;
 }
 
 @utility radar-glow {
   background:
-    radial-gradient(62% 55% at 50% 0%, color-mix(in oklab, var(--primary) 13%, transparent), transparent 72%),
-    radial-gradient(42% 36% at 88% 62%, color-mix(in oklab, var(--blue-team) 6%, transparent), transparent 76%);
+    radial-gradient(
+      62% 55% at 50% 0%,
+      color-mix(in oklab, var(--primary) 13%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      42% 36% at 88% 62%,
+      color-mix(in oklab, var(--blue-team) 6%, transparent),
+      transparent 76%
+    );
 }
 
 @utility scanlines {
@@ -184,8 +217,11 @@
 @utility ez-panel {
   position: relative;
   border: 1px solid var(--border);
-  background:
-    linear-gradient(135deg, color-mix(in oklab, var(--surface) 92%, transparent), color-mix(in oklab, var(--background) 90%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--surface) 92%, transparent),
+    color-mix(in oklab, var(--background) 90%, transparent)
+  );
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--foreground) 4%, transparent),
     0 18px 70px color-mix(in oklab, black 26%, transparent);
@@ -194,27 +230,43 @@
 @utility ez-panel-strong {
   position: relative;
   border: 1px solid color-mix(in oklab, var(--border) 88%, var(--primary) 12%);
-  background:
-    linear-gradient(145deg, color-mix(in oklab, var(--surface) 98%, transparent), color-mix(in oklab, var(--background) 94%, transparent));
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--surface) 98%, transparent),
+    color-mix(in oklab, var(--background) 94%, transparent)
+  );
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--foreground) 5%, transparent),
     0 24px 90px color-mix(in oklab, black 34%, transparent);
 }
 
 @utility corner-cut {
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
 }
 
 @utility soft-glow {
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent), 0 0 36px color-mix(in oklab, var(--primary) 9%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent),
+    0 0 36px color-mix(in oklab, var(--primary) 9%, transparent);
 }
 
 @utility team-blue-glow {
-  box-shadow: inset 3px 0 0 var(--blue-team), inset 20px 0 42px color-mix(in oklab, var(--blue-team) 5%, transparent);
+  box-shadow:
+    inset 3px 0 0 var(--blue-team),
+    inset 20px 0 42px color-mix(in oklab, var(--blue-team) 5%, transparent);
 }
 
 @utility team-red-glow {
-  box-shadow: inset 3px 0 0 var(--red-team), inset 20px 0 42px color-mix(in oklab, var(--red-team) 5%, transparent);
+  box-shadow:
+    inset 3px 0 0 var(--red-team),
+    inset 20px 0 42px color-mix(in oklab, var(--red-team) 5%, transparent);
 }
 
 @utility tactical-button {
@@ -242,98 +294,208 @@
   inset: 0;
   z-index: -1;
   transform: translateX(-105%);
-  background: linear-gradient(90deg, transparent, color-mix(in oklab, white 13%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, white 13%, transparent),
+    transparent
+  );
   transition: transform 280ms ease;
 }
 
-.tactical-button:hover::after { transform: translateX(105%); }
+.tactical-button:hover::after {
+  transform: translateX(105%);
+}
 
 @keyframes msg-in {
-  0% { opacity: 0; transform: translateY(10px) scale(0.992); }
-  62% { opacity: 1; transform: translateY(-1px) scale(1.002); }
-  100% { opacity: 1; transform: none; }
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.992);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.002);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes signal-pulse {
-  0%, 100% { opacity: 0.45; transform: scale(0.92); }
-  50% { opacity: 1; transform: scale(1); }
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes reaction-tap {
-  0% { transform: translateY(0) scale(1); }
-  42% { transform: translateY(-3px) scale(1.2) rotate(-4deg); }
-  72% { transform: translateY(0) scale(0.96) rotate(1deg); }
-  100% { transform: translateY(0) scale(1) rotate(0); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    transform: translateY(-3px) scale(1.2) rotate(-4deg);
+  }
+  72% {
+    transform: translateY(0) scale(0.96) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0);
+  }
 }
 
 @keyframes salt-hot {
-  0%, 100% { transform: scaleY(0.9); opacity: 0.72; }
-  50% { transform: scaleY(1.2); opacity: 1; }
+  0%,
+  100% {
+    transform: scaleY(0.9);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scaleY(1.2);
+    opacity: 1;
+  }
 }
 
 @keyframes salt-nuclear {
-  0%, 100% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-1px) scale(1.08); }
-  70% { transform: translateY(1px) scale(0.98); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-1px) scale(1.08);
+  }
+  70% {
+    transform: translateY(1px) scale(0.98);
+  }
 }
 
 @keyframes reaction-burst {
-  0% { opacity: 0; transform: translateY(14px) scale(0.55) rotate(-8deg); filter: blur(1px); }
-  22% { opacity: 1; transform: translateY(0) scale(1.35) rotate(3deg); filter: blur(0); }
-  58% { opacity: 1; transform: translateY(-13px) scale(1.05) rotate(-2deg); }
-  100% { opacity: 0; transform: translateY(-31px) scale(0.78) rotate(4deg); }
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.55) rotate(-8deg);
+    filter: blur(1px);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(0) scale(1.35) rotate(3deg);
+    filter: blur(0);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(-13px) scale(1.05) rotate(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-31px) scale(0.78) rotate(4deg);
+  }
 }
 
 @keyframes runback-ready {
-  0%, 100% { box-shadow: inset 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
-  50% { box-shadow: inset 0 0 30px color-mix(in oklab, var(--primary) 9%, transparent); }
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  50% {
+    box-shadow: inset 0 0 30px color-mix(in oklab, var(--primary) 9%, transparent);
+  }
 }
 
 @keyframes incoming-hit {
   0% {
     background: color-mix(in oklab, var(--primary) 10%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 44%, transparent), -10px 0 32px color-mix(in oklab, var(--primary) 8%, transparent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--primary) 44%, transparent),
+      -10px 0 32px color-mix(in oklab, var(--primary) 8%, transparent);
   }
   100% {
     background: transparent;
-    box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent;
+    box-shadow:
+      inset 0 0 0 0 transparent,
+      0 0 0 transparent;
   }
 }
 
 @keyframes reaction-impact {
-  0% { transform: scale(1); }
-  32% { transform: scale(1.008); background: color-mix(in oklab, var(--primary) 7%, var(--surface)); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  32% {
+    transform: scale(1.008);
+    background: color-mix(in oklab, var(--primary) 7%, var(--surface));
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes message-heat {
-  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
-  50% { box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 5%, transparent); }
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 5%, transparent);
+  }
 }
 
 @keyframes typing-dot {
-  0%, 70%, 100% { opacity: 0.28; transform: translateY(0) scale(0.8); }
-  34% { opacity: 1; transform: translateY(-2px) scale(1.12); }
+  0%,
+  70%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0) scale(0.8);
+  }
+  34% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.12);
+  }
 }
 
 @keyframes send-charge {
-  0%, 100% { box-shadow: 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
-  50% { box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 14%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 14%, transparent);
+  }
 }
 
 @keyframes nuclear-ambient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes online-blink {
-  0%, 100% { opacity: 0.65; }
-  50% { opacity: 1; box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 45%, transparent); }
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 45%, transparent);
+  }
 }
 
 button[aria-label*=" reaction"] {
@@ -346,11 +508,11 @@ button[aria-label*=" reaction"]:hover {
 }
 
 button[aria-label*=" reaction"]:active {
-  animation: reaction-tap 280ms cubic-bezier(.2,.85,.35,1);
+  animation: reaction-tap 280ms cubic-bezier(0.2, 0.85, 0.35, 1);
 }
 
 .reaction-burst {
-  animation: reaction-burst 860ms cubic-bezier(.18,.84,.28,1) both;
+  animation: reaction-burst 860ms cubic-bezier(0.18, 0.84, 0.28, 1) both;
   text-shadow:
     0 0 10px color-mix(in oklab, var(--primary) 48%, transparent),
     0 0 24px color-mix(in oklab, var(--primary) 28%, transparent);
@@ -373,7 +535,11 @@ button[aria-label*=" reaction"]:active {
 }
 
 .message-card.own-message {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 2.5%, transparent), transparent 55%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--primary) 2.5%, transparent),
+    transparent 55%
+  );
 }
 
 .message-card.incoming-message {
@@ -381,7 +547,7 @@ button[aria-label*=" reaction"]:active {
 }
 
 .message-card.reaction-impact {
-  animation: reaction-impact 500ms cubic-bezier(.2,.85,.35,1);
+  animation: reaction-impact 500ms cubic-bezier(0.2, 0.85, 0.35, 1);
 }
 
 .message-card.message-heated {
@@ -403,7 +569,9 @@ button[aria-label*=" reaction"]:active {
 }
 
 .message-avatar {
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .message-body {
@@ -420,7 +588,9 @@ button[aria-label*=" reaction"]:active {
 }
 
 .reaction-rail {
-  transition: transform 160ms ease, opacity 160ms ease;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease;
 }
 
 .message-card:hover .reaction-rail {
@@ -455,11 +625,17 @@ button[aria-label*=" reaction"]:active {
   animation: typing-dot 900ms ease-in-out infinite;
 }
 
-.typing-dots > span:nth-child(2) { animation-delay: 110ms; }
-.typing-dots > span:nth-child(3) { animation-delay: 220ms; }
+.typing-dots > span:nth-child(2) {
+  animation-delay: 110ms;
+}
+.typing-dots > span:nth-child(3) {
+  animation-delay: 220ms;
+}
 
 .composer-shell {
-  transition: box-shadow 180ms ease, background 180ms ease;
+  transition:
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
 .composer-shell.composer-live {
@@ -477,7 +653,10 @@ button[aria-label*=" reaction"]:active {
 }
 
 .player-row {
-  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .player-row:hover {
@@ -491,14 +670,28 @@ button[aria-label*=" reaction"]:active {
 }
 
 .chat-energy-spicy {
-  background-image: radial-gradient(80% 55% at 50% 100%, color-mix(in oklab, var(--primary) 2.8%, transparent), transparent 72%);
+  background-image: radial-gradient(
+    80% 55% at 50% 100%,
+    color-mix(in oklab, var(--primary) 2.8%, transparent),
+    transparent 72%
+  );
 }
 
 .chat-energy-nuclear {
   background-image:
-    radial-gradient(70% 45% at 50% 100%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%),
-    radial-gradient(35% 25% at 80% 15%, color-mix(in oklab, var(--primary) 2.5%, transparent), transparent 74%);
-  background-size: 130% 130%, 100% 100%;
+    radial-gradient(
+      70% 45% at 50% 100%,
+      color-mix(in oklab, var(--primary) 5%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 25% at 80% 15%,
+      color-mix(in oklab, var(--primary) 2.5%, transparent),
+      transparent 74%
+    );
+  background-size:
+    130% 130%,
+    100% 100%;
   animation: nuclear-ambient 4.2s ease-in-out infinite;
 }
 
@@ -520,11 +713,11 @@ div[data-salt-level="NUCLEAR"] > div > span {
 }
 
 @utility msg-in {
-  animation: msg-in 220ms cubic-bezier(.2,.8,.3,1) both;
+  animation: msg-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
 @utility rise-in {
-  animation: rise-in 420ms cubic-bezier(.22,.8,.32,1) both;
+  animation: rise-in 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
 }
 
 @utility signal-pulse {

@@ -10,10 +10,7 @@ const JOIN_LIFETIME_COPY =
   "No account. Pick a name and a side. Active rooms can last up to 10 minutes.";
 
 function cleanText(node: Element | null) {
-  return (node?.textContent ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
+  return (node?.textContent ?? "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
 function closestHTMLElement(node: Element | null, selector: string) {
@@ -21,7 +18,9 @@ function closestHTMLElement(node: Element | null, selector: string) {
 }
 
 function getPlayerDrawer() {
-  const closeButton = document.querySelector<HTMLButtonElement>('button[aria-label="Close player list"]');
+  const closeButton = document.querySelector<HTMLButtonElement>(
+    'button[aria-label="Close player list"]',
+  );
   const drawer = closeButton?.closest<HTMLElement>(".mobile-safe-top") ?? null;
   return { closeButton, drawer };
 }
@@ -57,7 +56,8 @@ export function RoomClarityLayer() {
       composerResizeObserver = new ResizeObserver(measureComposer);
       composerResizeObserver.observe(composerForm);
       const composerInner = composerForm.querySelector<HTMLElement>(".max-w-5xl");
-      if (composerInner && composerInner !== composerForm) composerResizeObserver.observe(composerInner);
+      if (composerInner && composerInner !== composerForm)
+        composerResizeObserver.observe(composerInner);
     };
 
     const apply = () => {
@@ -75,7 +75,10 @@ export function RoomClarityLayer() {
           );
           const primaryRow = directRows.find((row) => {
             const text = cleanText(row);
-            return (text.includes("POST-MATCH LOBBY") && text.includes("SYNCING")) || text.includes("LIVE");
+            return (
+              (text.includes("POST-MATCH LOBBY") && text.includes("SYNCING")) ||
+              text.includes("LIVE")
+            );
           });
           primaryRow?.classList.add("ez-room-primary-row");
 
@@ -151,7 +154,9 @@ export function RoomClarityLayer() {
             }
           }
 
-          const emptyTitle = mainCandidates.find((element) => cleanText(element) === "CHANNEL IS QUIET");
+          const emptyTitle = mainCandidates.find(
+            (element) => cleanText(element) === "CHANNEL IS QUIET",
+          );
           const emptyPanel = closestHTMLElement(emptyTitle ?? null, ".ez-panel");
           emptyPanel?.classList.add("ez-empty-state-clean");
         }
@@ -165,13 +170,19 @@ export function RoomClarityLayer() {
         const openingLabels = Array.from(
           document.querySelectorAll<HTMLElement>("div.fixed span, div.fixed p"),
         );
-        const openingLabel = openingLabels.find((element) => cleanText(element) === "OPENING SHOTS");
+        const openingLabel = openingLabels.find(
+          (element) => cleanText(element) === "OPENING SHOTS",
+        );
         const openingPanel = openingLabel
-          ? closestHTMLElement(openingLabel, "div.fixed") ?? openingLabel.parentElement?.parentElement
+          ? (closestHTMLElement(openingLabel, "div.fixed") ??
+            openingLabel.parentElement?.parentElement)
           : null;
-        if (openingPanel instanceof HTMLElement) openingPanel.classList.add("ez-opening-shots-clean");
+        if (openingPanel instanceof HTMLElement)
+          openingPanel.classList.add("ez-opening-shots-clean");
 
-        const pickOwn = openingLabels.find((element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN");
+        const pickOwn = openingLabels.find(
+          (element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN",
+        );
         pickOwn?.classList.add("ez-clarity-hide");
 
         const saltStatus = document.querySelector<HTMLElement>(
@@ -190,12 +201,14 @@ export function RoomClarityLayer() {
           }
         }
 
-        for (const feed of document.querySelectorAll<HTMLElement>("div.pointer-events-none.fixed")) {
+        for (const feed of document.querySelectorAll<HTMLElement>(
+          "div.pointer-events-none.fixed",
+        )) {
           if (feed.querySelector(".animate-in")) feed.classList.add("ez-activity-feed-clean");
         }
 
-        const reactionLive = Array.from(document.querySelectorAll<HTMLElement>("p, span")).find((element) =>
-          cleanText(element).includes("REACTIONS FEEL LIVE"),
+        const reactionLive = Array.from(document.querySelectorAll<HTMLElement>("p, span")).find(
+          (element) => cleanText(element).includes("REACTIONS FEEL LIVE"),
         );
         if (reactionLive) {
           let current: HTMLElement | null = reactionLive;
@@ -223,7 +236,9 @@ export function RoomClarityLayer() {
           }
         }
 
-        const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+        const composer = document.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Message"]',
+        );
         const composerForm = composer?.closest<HTMLElement>("form") ?? null;
         composerForm?.classList.add("ez-composer-clean");
         attachComposerGeometry(composerForm);
@@ -252,7 +267,8 @@ export function RoomClarityLayer() {
           drawer.setAttribute("aria-modal", "true");
           if (drawer.dataset.ezA11yReady !== "true") {
             drawer.dataset.ezA11yReady = "true";
-            drawerPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            drawerPreviousFocus =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
             closeButton.focus({ preventScroll: true });
           }
         } else if (drawerPreviousFocus) {

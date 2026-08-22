@@ -136,7 +136,13 @@ function calculateSalt(snapshot: Snapshot): SaltState {
   return { label: "CALM", score, level: 1 };
 }
 
-function playTone(context: AudioContext, frequency: number, delay: number, duration: number, gain = 0.025) {
+function playTone(
+  context: AudioContext,
+  frequency: number,
+  delay: number,
+  duration: number,
+  gain = 0.025,
+) {
   window.setTimeout(() => {
     if (context.state === "suspended") void context.resume();
     const oscillator = context.createOscillator();
@@ -199,7 +205,9 @@ export function LobbyPersonalityLayer() {
 
   const playCue = useCallback((cue: Cue) => {
     if (!soundOnRef.current || typeof window === "undefined") return;
-    const AudioCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtor) return;
     if (!audioRef.current) audioRef.current = new AudioCtor();
     const context = audioRef.current;
@@ -222,20 +230,23 @@ export function LobbyPersonalityLayer() {
     }
   }, []);
 
-  const pushEvent = useCallback((text: string, tone: ActivityTone, icon: ActivityEvent["icon"], cue?: Cue) => {
-    eventCounterRef.current += 1;
-    const event: ActivityEvent = {
-      id: Date.now() + eventCounterRef.current,
-      text,
-      tone,
-      icon,
-    };
-    setEvents((current) => [...current.slice(-2), event]);
-    if (cue) playCue(cue);
-    window.setTimeout(() => {
-      setEvents((current) => current.filter((item) => item.id !== event.id));
-    }, 2600);
-  }, [playCue]);
+  const pushEvent = useCallback(
+    (text: string, tone: ActivityTone, icon: ActivityEvent["icon"], cue?: Cue) => {
+      eventCounterRef.current += 1;
+      const event: ActivityEvent = {
+        id: Date.now() + eventCounterRef.current,
+        text,
+        tone,
+        icon,
+      };
+      setEvents((current) => [...current.slice(-2), event]);
+      if (cue) playCue(cue);
+      window.setTimeout(() => {
+        setEvents((current) => current.filter((item) => item.id !== event.id));
+      }, 2600);
+    },
+    [playCue],
+  );
 
   useEffect(() => {
     if (!code || !guestCredential || !realtimeToken) {
@@ -287,13 +298,23 @@ export function LobbyPersonalityLayer() {
           for (const [id, player] of nextPlayers) {
             const old = previousPlayers.get(id);
             if (!old) {
-              pushEvent(`${player.nickname} JOINED ${teamLabel(player.team)}`, player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime", "radio", "join");
+              pushEvent(
+                `${player.nickname} JOINED ${teamLabel(player.team)}`,
+                player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime",
+                "radio",
+                "join",
+              );
             } else if (old.team !== player.team) {
-              pushEvent(`${player.nickname} SWITCHED TO ${teamLabel(player.team)}`, player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime", "radio");
+              pushEvent(
+                `${player.nickname} SWITCHED TO ${teamLabel(player.team)}`,
+                player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime",
+                "radio",
+              );
             }
           }
           for (const [id, player] of previousPlayers) {
-            if (!nextPlayers.has(id)) pushEvent(`${player.nickname} LEFT THE LOBBY`, "muted", "radio", "leave");
+            if (!nextPlayers.has(id))
+              pushEvent(`${player.nickname} LEFT THE LOBBY`, "muted", "radio", "leave");
           }
         }
         previousPlayersRef.current = nextPlayers;
@@ -302,7 +323,10 @@ export function LobbyPersonalityLayer() {
         if (previousMessagesRef.current) {
           const remoteReply = [...snapshot.messages]
             .reverse()
-            .find((message) => !previousMessagesRef.current?.has(message.id) && message.guest_id !== selfId);
+            .find(
+              (message) =>
+                !previousMessagesRef.current?.has(message.id) && message.guest_id !== selfId,
+            );
           if (remoteReply) playCue("message");
         }
         previousMessagesRef.current = nextMessageIds;
@@ -313,13 +337,24 @@ export function LobbyPersonalityLayer() {
           for (const [key, count] of nextCounts) {
             const before = previousCounts.get(key) ?? 0;
             const [messageId, emoji] = key.split(":") as [string, Reaction["emoji"]];
-            const author = snapshot.messages.find((message) => message.id === messageId)?.nickname ?? "THAT MESSAGE";
+            const author =
+              snapshot.messages.find((message) => message.id === messageId)?.nickname ??
+              "THAT MESSAGE";
 
             for (const milestone of [3, 5]) {
               const milestoneKey = `${key}:${milestone}`;
-              if (count >= milestone && before < milestone && !comboMilestonesRef.current.has(milestoneKey)) {
+              if (
+                count >= milestone &&
+                before < milestone &&
+                !comboMilestonesRef.current.has(milestoneKey)
+              ) {
                 comboMilestonesRef.current.add(milestoneKey);
-                pushEvent(`${comboLabel(emoji, milestone === 5)} · ${author}`, "hot", "spark", "combo");
+                pushEvent(
+                  `${comboLabel(emoji, milestone === 5)} · ${author}`,
+                  "hot",
+                  "spark",
+                  "combo",
+                );
               }
             }
           }
@@ -335,7 +370,11 @@ export function LobbyPersonalityLayer() {
 
         const rematchCount = snapshot.rematchVotes.length;
         const rematchTarget = Math.max(2, Math.ceil(Math.max(snapshot.players.length, 2) / 2));
-        if (previousRematchRef.current !== null && previousRematchRef.current < rematchTarget && rematchCount >= rematchTarget) {
+        if (
+          previousRematchRef.current !== null &&
+          previousRematchRef.current < rematchTarget &&
+          rematchCount >= rematchTarget
+        ) {
           pushEvent(`RUNBACK LOCKED · ${rematchCount} VOTES`, "lime", "zap", "runback");
         }
         previousRematchRef.current = rematchCount;
@@ -417,7 +456,9 @@ export function LobbyPersonalityLayer() {
 
       {!expired && messageCount !== null && (
         <div className="fixed bottom-[6.8rem] left-1/2 z-35 w-[min(96vw,58rem)] -translate-x-1/2 px-1 sm:bottom-[6.25rem]">
-          <div className={`flex min-h-12 items-center gap-2 border bg-background/94 p-1.5 shadow-2xl backdrop-blur-md ${saltClasses.border} ${saltClasses.glow}`}>
+          <div
+            className={`flex min-h-12 items-center gap-2 border bg-background/94 p-1.5 shadow-2xl backdrop-blur-md ${saltClasses.border} ${saltClasses.glow}`}
+          >
             <div
               className="flex shrink-0 items-center gap-2 border-r border-border/70 px-1.5 pr-2.5"
               role="status"
@@ -425,7 +466,9 @@ export function LobbyPersonalityLayer() {
               title="Salt-O-Meter reflects the last minute of room messages, reactions and Runback energy."
             >
               <div className="hidden min-w-[5.2rem] sm:block">
-                <p className="font-display text-[0.58rem] font-bold uppercase tracking-[0.12em] text-foreground/75">Salt-O-Meter</p>
+                <p className="font-display text-[0.58rem] font-bold uppercase tracking-[0.12em] text-foreground/75">
+                  Salt-O-Meter
+                </p>
                 <div className="mt-1 flex gap-[3px]">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((segment) => (
                     <span
@@ -436,18 +479,26 @@ export function LobbyPersonalityLayer() {
                 </div>
               </div>
               <div className="text-right sm:text-left">
-                <p className={`font-display text-[0.68rem] font-bold uppercase tracking-[0.08em] ${saltClasses.text} ${salt.label === "NUCLEAR" ? "signal-pulse" : ""}`}>
+                <p
+                  className={`font-display text-[0.68rem] font-bold uppercase tracking-[0.08em] ${saltClasses.text} ${salt.label === "NUCLEAR" ? "signal-pulse" : ""}`}
+                >
                   {salt.label}
                 </p>
-                <p className="font-mono text-[0.55rem] tabular-nums text-muted-foreground">{Math.min(salt.score, 99)} heat</p>
+                <p className="font-mono text-[0.55rem] tabular-nums text-muted-foreground">
+                  {Math.min(salt.score, 99)} heat
+                </p>
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="mb-1 hidden items-center gap-2 px-1 sm:flex">
                 <Zap className="size-3 text-primary" />
-                <span className="font-display text-[0.58rem] font-semibold uppercase tracking-[0.11em] text-foreground/70">Quick shots</span>
-                <span className="font-mono text-[0.5rem] uppercase tracking-[0.1em] text-muted-foreground">Prefill only</span>
+                <span className="font-display text-[0.58rem] font-semibold uppercase tracking-[0.11em] text-foreground/70">
+                  Quick shots
+                </span>
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.1em] text-muted-foreground">
+                  Prefill only
+                </span>
               </div>
               <div className="flex min-w-0 gap-1 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {OPENERS.map((opener) => (
