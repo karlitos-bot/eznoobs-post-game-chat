@@ -132,15 +132,12 @@ function Home() {
         <section className="home-hero-grid" aria-labelledby="home-hero-title">
           <div className="home-hero-copy rise-in">
             <div className="home-brand-lockup">
-              <div className="home-mascot-emblem">
-                <span className="home-mascot-orbit" aria-hidden="true" />
-                <img
-                  src="/eznoobs-logo.webp"
-                  alt="EZNOOBS gaming mascot"
-                  className="home-mascot-image select-none"
-                  draggable={false}
-                />
-              </div>
+              <img
+                src="/eznoobs-mark.svg"
+                alt="EZNOOBS gaming mascot"
+                className="home-mascot-image select-none"
+                draggable={false}
+              />
 
               <div className="home-brand-copy">
                 <div className="home-channel-row">
