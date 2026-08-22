@@ -58,7 +58,7 @@ export function RoomExpiryGuard() {
     };
 
     const inspectExpiry = () => {
-      if (!roomMain || expired) return;
+      if (!roomMain) return;
       if (hasExpiredSignal(roomMain)) {
         setExpired(true);
         expiryObserver?.disconnect();

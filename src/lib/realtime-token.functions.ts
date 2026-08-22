@@ -12,7 +12,7 @@ function splitGuestCredential(credential: string) {
 }
 
 export const getLobbyRealtimeToken = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ code: codeSchema, guestId: guestSchema }).parse(d),
   )
   .handler(async ({ data }) => {

@@ -23,7 +23,7 @@ async function callRpc(
 }
 
 export const createRunbackLobby = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ code: codeSchema, guestId: guestSchema }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -51,7 +51,7 @@ export const createRunbackLobby = createServerFn({ method: "POST" })
   });
 
 export const getRunbackLobby = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ code: codeSchema, guestId: guestSchema }).parse(d),
   )
   .handler(async ({ data }) => {

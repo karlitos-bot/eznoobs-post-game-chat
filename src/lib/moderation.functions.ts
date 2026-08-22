@@ -33,7 +33,7 @@ export type ModerationReport = {
 };
 
 export const moderatorLogin = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         moderatorId: z.string().uuid(),
@@ -65,7 +65,7 @@ export const moderatorLogin = createServerFn({ method: "POST" })
   });
 
 export const getModerationQueue = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         sessionToken: sessionSchema,
@@ -119,7 +119,7 @@ export const getModerationQueue = createServerFn({ method: "POST" })
   });
 
 export const reviewModerationReport = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         sessionToken: sessionSchema,
@@ -147,7 +147,7 @@ export const reviewModerationReport = createServerFn({ method: "POST" })
   });
 
 export const moderatorLogout = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ sessionToken: sessionSchema }).parse(d))
+  .validator((d: unknown) => z.object({ sessionToken: sessionSchema }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await callRpc(supabaseAdmin, "moderator_logout", {

@@ -40,7 +40,7 @@ export type ActiveRestriction = {
 };
 
 export const getEnforcementCandidates = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ sessionToken: sessionSchema, limit: z.number().int().min(1).max(100).default(50) }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -83,7 +83,7 @@ export const getEnforcementCandidates = createServerFn({ method: "POST" })
   });
 
 export const applyGuestRestriction = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         sessionToken: sessionSchema,
@@ -125,7 +125,7 @@ export const applyGuestRestriction = createServerFn({ method: "POST" })
   });
 
 export const getActiveRestrictions = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ sessionToken: sessionSchema, limit: z.number().int().min(1).max(100).default(100) }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -160,7 +160,7 @@ export const getActiveRestrictions = createServerFn({ method: "POST" })
   });
 
 export const liftGuestRestriction = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         sessionToken: sessionSchema,
