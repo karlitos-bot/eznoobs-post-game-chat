@@ -100,9 +100,12 @@ export function RoomClarityLayer() {
               element.parentElement?.classList.add("ez-clarity-hide");
             }
 
-            // Legacy room JSX is consolidated in a later architecture pass. Normalize the
-            // two lifetime labels at render time without scanning the whole document.
-            if (text.includes("LIFETIME") && text.includes("RESET")) {
+            // Normalize only the exact leaf lifetime label. Never rewrite an ancestor
+            // container because assigning textContent would remove sibling controls.
+            if (
+              element.children.length === 0 &&
+              text === "FIXED LIFETIME · NO RESET"
+            ) {
               element.textContent = ROOM_LIFETIME_LABEL;
             }
 
