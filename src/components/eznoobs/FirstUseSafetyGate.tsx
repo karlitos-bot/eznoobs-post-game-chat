@@ -122,115 +122,109 @@ export function FirstUseSafetyGate() {
 
   if (!ready || !stage) return null;
 
-  if (stage === "rules") {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-background/96 px-4 py-6 backdrop-blur-sm">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="eznoobs-rules-title"
-          aria-describedby="eznoobs-rules-description"
-          onKeyDown={trapFocus}
-          className="ez-panel-strong corner-cut my-auto w-full max-w-xl overflow-hidden"
-        >
-          <div className="border-b border-border/70 px-5 py-5 sm:px-6">
-            <div className="flex items-center gap-2 text-primary">
-              <Skull className="size-4" aria-hidden="true" />
-              <p className="hud-label text-primary">Before your first lobby</p>
-            </div>
-            <h2 id="eznoobs-rules-title" className="mt-2 text-3xl sm:text-4xl">
-              Trash talk stays in-game.
-            </h2>
-            <p id="eznoobs-rules-description" className="mt-3 text-sm leading-6 text-muted-foreground">
-              Profanity and ordinary game banter are allowed. Protected-class hate, real-world threats, doxxing and targeted harassment are not.
-            </p>
-          </div>
-
-          <div className="grid gap-3 px-5 py-5 sm:px-6">
-            <div className="border border-border/70 bg-background/45 px-4 py-3 text-sm leading-6 text-foreground/90">
-              Keep the salt about the match, the play and the rivalry — not someone&apos;s protected identity or private life.
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Link
-                to="/community-rules"
-                className="touch-target inline-flex items-center font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground hover:text-primary"
-              >
-                Read Community Rules
-              </Link>
-              <button
-                type="button"
-                onClick={acceptRules}
-                className="tactical-button touch-target bg-primary px-5 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground"
-              >
-                Enter lobby
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-background/96 px-4 py-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-background/95 px-4 py-6 backdrop-blur-md sm:py-8">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="eznoobs-legal-title"
-        aria-describedby="eznoobs-legal-description"
+        aria-labelledby="eznoobs-first-use-title"
+        aria-describedby="eznoobs-first-use-description"
         onKeyDown={trapFocus}
-        className="ez-panel-strong corner-cut my-auto w-full max-w-xl overflow-hidden"
+        className="ez-panel-strong corner-cut relative w-full max-w-lg overflow-hidden border border-primary/25 bg-background p-5 shadow-2xl sm:p-7"
       >
-        <div className="border-b border-border/70 px-5 py-5 sm:px-6">
-          <div className="flex items-center gap-2 text-primary">
-            <UserRoundCheck className="size-4" aria-hidden="true" />
-            <p className="hud-label text-primary">First time here</p>
-          </div>
-          <h2 id="eznoobs-legal-title" className="mt-2 text-3xl sm:text-4xl">
-            Adults only. Read the rules.
-          </h2>
-          <p id="eznoobs-legal-description" className="mt-3 text-sm leading-6 text-muted-foreground">
-            EZNOOBS is an 18+ temporary post-game chat beta. Before continuing, confirm your age and agreement to the current Terms of Service.
-          </p>
-        </div>
+        <div className="pointer-events-none absolute inset-0 micro-grid opacity-15" />
+        <div className="relative">
+          {stage === "legal" ? (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
+                  <UserRoundCheck className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="hud-label text-primary">One-time beta check</p>
+                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">18+ · Know the rules</h2>
+                </div>
+              </div>
 
-        <div className="px-5 py-5 sm:px-6">
-          <label className="flex cursor-pointer items-start gap-3 border border-border/70 bg-background/45 px-4 py-4 text-sm leading-6 text-foreground/90">
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={(event) => setChecked(event.target.checked)}
-              className="mt-1 size-4 shrink-0 accent-[var(--color-primary)]"
-            />
-            <span>
-              I confirm I am 18 or older and agree to the Terms of Service. I understand that the Privacy Policy and Community Rules also apply.
-            </span>
-          </label>
+              <p id="eznoobs-first-use-description" className="mt-5 text-sm leading-6 text-muted-foreground">
+                EZNOOBS is an adults-only beta built for temporary post-game chat. Review the terms and safety information before continuing.
+              </p>
 
-          <div className="mt-4 flex flex-wrap gap-2 font-mono text-[0.6rem] uppercase tracking-[0.11em] text-muted-foreground">
-            <Link to="/terms" className="touch-target inline-flex items-center px-2 hover:text-primary">
-              Terms
-            </Link>
-            <Link to="/privacy" className="touch-target inline-flex items-center px-2 hover:text-primary">
-              Privacy
-            </Link>
-            <Link to="/community-rules" className="touch-target inline-flex items-center px-2 hover:text-primary">
-              Community Rules
-            </Link>
-          </div>
+              <label className="mt-5 flex cursor-pointer items-start gap-3 border border-border bg-surface/35 p-3 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => setChecked(event.target.checked)}
+                  className="mt-0.5 size-4 accent-[hsl(var(--primary))]"
+                />
+                <span>I confirm that I am 18 years old or older and agree to the Terms of Service.</span>
+              </label>
 
-          <button
-            type="button"
-            disabled={!checked}
-            onClick={acceptLegal}
-            className="tactical-button touch-target mt-5 inline-flex w-full items-center justify-center gap-2 bg-primary px-5 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ShieldCheck className="size-4" aria-hidden="true" /> Continue
-          </button>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Read the{" "}
+                <Link to="/terms" className="text-primary underline-offset-4 hover:underline">Terms of Service</Link>,{" "}
+                <Link to="/privacy" className="text-primary underline-offset-4 hover:underline">Privacy Policy</Link>, and{" "}
+                <Link to="/community-rules" className="text-primary underline-offset-4 hover:underline">Community Rules</Link>.
+                These pages remain available before you agree.
+              </p>
+
+              <button
+                type="button"
+                disabled={!checked}
+                onClick={acceptLegal}
+                className="tactical-button mt-5 flex min-h-12 w-full items-center justify-center bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Agree & continue
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center border border-primary/35 bg-primary/[0.06] text-primary">
+                  <ShieldCheck className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="hud-label text-primary">Before you enter</p>
+                  <h2 id="eznoobs-first-use-title" className="mt-1 text-3xl">Trash talk responsibly</h2>
+                </div>
+              </div>
+
+              <p id="eznoobs-first-use-description" className="mt-5 text-sm leading-6 text-muted-foreground">
+                EZNOOBS gives post-game chat more room to breathe, but the line is simple.
+              </p>
+
+              <div className="mt-4 grid gap-2">
+                <div className="flex items-center gap-3 border border-primary/25 bg-primary/[0.035] px-3 py-3">
+                  <span className="font-mono text-xs font-semibold text-primary">OK</span>
+                  <span className="text-sm">Game trash talk, profanity and ordinary insults.</span>
+                </div>
+                <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
+                  <Skull className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+                  <span className="text-sm">No hate/slurs targeting race, sex, religion or identity.</span>
+                </div>
+                <div className="flex items-center gap-3 border border-destructive/25 bg-destructive/[0.035] px-3 py-3">
+                  <Skull className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+                  <span className="text-sm">No threats, doxxing, or personal contact/location information.</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={acceptRules}
+                className="tactical-button mt-5 flex min-h-12 w-full items-center justify-center bg-primary px-5 font-mono text-xs font-semibold uppercase tracking-[0.17em] text-primary-foreground"
+              >
+                Got it — enter lobby
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export const FIRST_USE_STORAGE_KEYS = {
+  legal: LEGAL_ACK_KEY,
+  rules: RULES_ACK_KEY,
+} as const;
