@@ -10,10 +10,7 @@ const JOIN_LIFETIME_COPY =
   "No account. Pick a name and a side. Active rooms can last up to 10 minutes.";
 
 function cleanText(node: Element | null) {
-  return (node?.textContent ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
+  return (node?.textContent ?? "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
 function closestHTMLElement(node: Element | null, selector: string) {
@@ -21,7 +18,9 @@ function closestHTMLElement(node: Element | null, selector: string) {
 }
 
 function getPlayerDrawer() {
-  const closeButton = document.querySelector<HTMLButtonElement>('button[aria-label="Close player list"]');
+  const closeButton = document.querySelector<HTMLButtonElement>(
+    'button[aria-label="Close player list"]',
+  );
   const drawer = closeButton?.closest<HTMLElement>(".mobile-safe-top") ?? null;
   return { closeButton, drawer };
 }
@@ -57,7 +56,8 @@ export function RoomClarityLayer() {
       composerResizeObserver = new ResizeObserver(measureComposer);
       composerResizeObserver.observe(composerForm);
       const composerInner = composerForm.querySelector<HTMLElement>(".max-w-5xl");
-      if (composerInner && composerInner !== composerForm) composerResizeObserver.observe(composerInner);
+      if (composerInner && composerInner !== composerForm)
+        composerResizeObserver.observe(composerInner);
     };
 
     const apply = () => {
@@ -75,7 +75,10 @@ export function RoomClarityLayer() {
           );
           const primaryRow = directRows.find((row) => {
             const text = cleanText(row);
-            return (text.includes("POST-MATCH LOBBY") && text.includes("SYNCING")) || text.includes("LIVE");
+            return (
+              (text.includes("POST-MATCH LOBBY") && text.includes("SYNCING")) ||
+              text.includes("LIVE")
+            );
           });
           primaryRow?.classList.add("ez-room-primary-row");
 
@@ -84,6 +87,11 @@ export function RoomClarityLayer() {
             return text.includes("SALT") && text.includes("INVITE") && text.includes("RUN IT BACK");
           });
           secondaryRow?.classList.add("ez-room-secondary-row");
+
+          // The persistent personality dock now owns Salt. Hide the small legacy header meter
+          // instead of showing two competing Salt readouts.
+          const legacySaltMeter = secondaryRow?.querySelector<HTMLElement>("[data-salt-level]");
+          legacySaltMeter?.parentElement?.classList.add("ez-clarity-hide");
 
           for (const element of header.querySelectorAll<HTMLElement>("p, span, div")) {
             const text = cleanText(element);
@@ -146,7 +154,9 @@ export function RoomClarityLayer() {
             }
           }
 
-          const emptyTitle = mainCandidates.find((element) => cleanText(element) === "CHANNEL IS QUIET");
+          const emptyTitle = mainCandidates.find(
+            (element) => cleanText(element) === "CHANNEL IS QUIET",
+          );
           const emptyPanel = closestHTMLElement(emptyTitle ?? null, ".ez-panel");
           emptyPanel?.classList.add("ez-empty-state-clean");
         }
@@ -160,26 +170,45 @@ export function RoomClarityLayer() {
         const openingLabels = Array.from(
           document.querySelectorAll<HTMLElement>("div.fixed span, div.fixed p"),
         );
-        const openingLabel = openingLabels.find((element) => cleanText(element) === "OPENING SHOTS");
+        const openingLabel = openingLabels.find(
+          (element) => cleanText(element) === "OPENING SHOTS",
+        );
         const openingPanel = openingLabel
-          ? closestHTMLElement(openingLabel, "div.fixed") ?? openingLabel.parentElement?.parentElement
+          ? (closestHTMLElement(openingLabel, "div.fixed") ??
+            openingLabel.parentElement?.parentElement)
           : null;
-        if (openingPanel instanceof HTMLElement) openingPanel.classList.add("ez-opening-shots-clean");
+        if (openingPanel instanceof HTMLElement)
+          openingPanel.classList.add("ez-opening-shots-clean");
 
-        const pickOwn = openingLabels.find((element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN");
+        const pickOwn = openingLabels.find(
+          (element) => cleanText(element) === "PICK ONE OR TYPE YOUR OWN",
+        );
         pickOwn?.classList.add("ez-clarity-hide");
 
-        const soundButton = document.querySelector<HTMLElement>(
-          'button[aria-label^="Turn lobby sounds"]',
+        const saltStatus = document.querySelector<HTMLElement>(
+          '[role="status"][aria-label^="Salt-O-Meter"]',
         );
-        soundButton?.classList.add("ez-sound-control-clean");
+        const personalityDock = saltStatus?.closest<HTMLElement>("div.fixed") ?? null;
+        personalityDock?.classList.add("ez-personality-dock-clean");
 
-        for (const feed of document.querySelectorAll<HTMLElement>("div.pointer-events-none.fixed")) {
+        // Keep the legacy floating sound control hidden, but do not hide the sound toggle that
+        // now lives inside the Salt-O-Meter / Quick Shots dock.
+        for (const soundButton of document.querySelectorAll<HTMLElement>(
+          'button[aria-label^="Turn lobby sounds"]',
+        )) {
+          if (!soundButton.closest(".ez-personality-dock-clean")) {
+            soundButton.classList.add("ez-sound-control-clean");
+          }
+        }
+
+        for (const feed of document.querySelectorAll<HTMLElement>(
+          "div.pointer-events-none.fixed",
+        )) {
           if (feed.querySelector(".animate-in")) feed.classList.add("ez-activity-feed-clean");
         }
 
-        const reactionLive = Array.from(document.querySelectorAll<HTMLElement>("p, span")).find((element) =>
-          cleanText(element).includes("REACTIONS FEEL LIVE"),
+        const reactionLive = Array.from(document.querySelectorAll<HTMLElement>("p, span")).find(
+          (element) => cleanText(element).includes("REACTIONS FEEL LIVE"),
         );
         if (reactionLive) {
           let current: HTMLElement | null = reactionLive;
@@ -200,12 +229,22 @@ export function RoomClarityLayer() {
           // screen readers repeatedly announce names entering/leaving the typing state.
           activityStrip.setAttribute("aria-live", "off");
           activityStrip.removeAttribute("aria-atomic");
+
+          // Salt is now represented by the persistent meter above the composer.
+          for (const child of Array.from(activityStrip.children)) {
+            if (cleanText(child).includes("SALT")) child.classList.add("ez-clarity-hide");
+          }
         }
 
-        const composer = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+        const composer = document.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Message"]',
+        );
         const composerForm = composer?.closest<HTMLElement>("form") ?? null;
         composerForm?.classList.add("ez-composer-clean");
         attachComposerGeometry(composerForm);
+        // The personality dock can mount after the composer geometry observer is attached.
+        // Refresh the CSS variables whenever the DOM layer changes so it snaps above composer.
+        measureComposer();
 
         const drawerOpener = document.querySelector<HTMLButtonElement>(
           'button[aria-label^="Open player list"]',
@@ -228,7 +267,8 @@ export function RoomClarityLayer() {
           drawer.setAttribute("aria-modal", "true");
           if (drawer.dataset.ezA11yReady !== "true") {
             drawer.dataset.ezA11yReady = "true";
-            drawerPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            drawerPreviousFocus =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
             closeButton.focus({ preventScroll: true });
           }
         } else if (drawerPreviousFocus) {

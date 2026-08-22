@@ -18,6 +18,7 @@ type Message = {
   id: string;
   guest_id: string;
   nickname: string;
+  created_at: string;
 };
 
 type Reaction = {
@@ -25,6 +26,7 @@ type Reaction = {
   message_id: string;
   guest_id: string;
   emoji: "GG" | "skull" | "salt" | "clown";
+  created_at: string;
 };
 
 type Snapshot = {
@@ -43,9 +45,17 @@ type ActivityEvent = {
   icon: "radio" | "zap" | "spark";
 };
 
+type SaltLabel = "CALM" | "WARM" | "SPICY" | "NUCLEAR";
+type SaltState = {
+  label: SaltLabel;
+  score: number;
+  level: 1 | 2 | 3 | 4;
+};
+
 type Cue = "message" | "reaction" | "join" | "leave" | "combo" | "runback";
 
 const OPENERS = ["GG", "RUN IT BACK", "WHO THREW?", "EZ?", "ONE MORE."];
+const DEFAULT_SALT: SaltState = { label: "CALM", score: 0, level: 1 };
 
 function teamLabel(team: Team) {
   if (team === "blue") return "BLUE";
@@ -68,7 +78,71 @@ function toneClass(tone: ActivityTone) {
   return "border-primary/45 bg-primary/[0.08] text-primary";
 }
 
-function playTone(context: AudioContext, frequency: number, delay: number, duration: number, gain = 0.025) {
+function saltTone(label: SaltLabel) {
+  if (label === "NUCLEAR") {
+    return {
+      text: "text-red-300",
+      border: "border-red-400/45",
+      fill: "border-red-300 bg-red-300",
+      glow: "shadow-[0_0_24px_rgba(248,113,113,0.10)]",
+    };
+  }
+  if (label === "SPICY") {
+    return {
+      text: "text-orange-300",
+      border: "border-orange-400/40",
+      fill: "border-orange-300 bg-orange-300",
+      glow: "shadow-[0_0_20px_rgba(253,186,116,0.08)]",
+    };
+  }
+  if (label === "WARM") {
+    return {
+      text: "text-yellow-300",
+      border: "border-yellow-300/35",
+      fill: "border-yellow-300 bg-yellow-300",
+      glow: "",
+    };
+  }
+  return {
+    text: "text-primary",
+    border: "border-primary/35",
+    fill: "border-primary bg-primary",
+    glow: "",
+  };
+}
+
+function calculateSalt(snapshot: Snapshot): SaltState {
+  const minuteAgo = Date.now() - 60_000;
+  const recentMessages = snapshot.messages.filter((message) => {
+    const created = new Date(message.created_at).getTime();
+    return Number.isFinite(created) && created >= minuteAgo;
+  });
+  const recentChatters = new Set(recentMessages.map((message) => message.guest_id)).size;
+  const reactionScore = snapshot.reactions.reduce((score, reaction) => {
+    const created = new Date(reaction.created_at).getTime();
+    if (!Number.isFinite(created) || created < minuteAgo) return score;
+    if (reaction.emoji === "salt") return score + 4;
+    if (reaction.emoji === "clown") return score + 3;
+    if (reaction.emoji === "skull") return score + 1;
+    return score;
+  }, 0);
+  const rematchScore = Math.min(snapshot.rematchVotes.length * 2, 8);
+  const chatterBonus = Math.max(0, Math.min(recentChatters - 2, 4));
+  const score = recentMessages.length + reactionScore + rematchScore + chatterBonus;
+
+  if (score >= 24) return { label: "NUCLEAR", score, level: 4 };
+  if (score >= 14) return { label: "SPICY", score, level: 3 };
+  if (score >= 6) return { label: "WARM", score, level: 2 };
+  return { label: "CALM", score, level: 1 };
+}
+
+function playTone(
+  context: AudioContext,
+  frequency: number,
+  delay: number,
+  duration: number,
+  gain = 0.025,
+) {
   window.setTimeout(() => {
     if (context.state === "suspended") void context.resume();
     const oscillator = context.createOscillator();
@@ -105,6 +179,7 @@ export function LobbyPersonalityLayer() {
   const [guestCredential, setGuestCredential] = useState("");
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [messageCount, setMessageCount] = useState<number | null>(null);
+  const [salt, setSalt] = useState<SaltState>(DEFAULT_SALT);
   const [expired, setExpired] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
@@ -130,7 +205,9 @@ export function LobbyPersonalityLayer() {
 
   const playCue = useCallback((cue: Cue) => {
     if (!soundOnRef.current || typeof window === "undefined") return;
-    const AudioCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtor) return;
     if (!audioRef.current) audioRef.current = new AudioCtor();
     const context = audioRef.current;
@@ -153,20 +230,23 @@ export function LobbyPersonalityLayer() {
     }
   }, []);
 
-  const pushEvent = useCallback((text: string, tone: ActivityTone, icon: ActivityEvent["icon"], cue?: Cue) => {
-    eventCounterRef.current += 1;
-    const event: ActivityEvent = {
-      id: Date.now() + eventCounterRef.current,
-      text,
-      tone,
-      icon,
-    };
-    setEvents((current) => [...current.slice(-2), event]);
-    if (cue) playCue(cue);
-    window.setTimeout(() => {
-      setEvents((current) => current.filter((item) => item.id !== event.id));
-    }, 2600);
-  }, [playCue]);
+  const pushEvent = useCallback(
+    (text: string, tone: ActivityTone, icon: ActivityEvent["icon"], cue?: Cue) => {
+      eventCounterRef.current += 1;
+      const event: ActivityEvent = {
+        id: Date.now() + eventCounterRef.current,
+        text,
+        tone,
+        icon,
+      };
+      setEvents((current) => [...current.slice(-2), event]);
+      if (cue) playCue(cue);
+      window.setTimeout(() => {
+        setEvents((current) => current.filter((item) => item.id !== event.id));
+      }, 2600);
+    },
+    [playCue],
+  );
 
   useEffect(() => {
     if (!code || !guestCredential || !realtimeToken) {
@@ -177,6 +257,7 @@ export function LobbyPersonalityLayer() {
       comboMilestonesRef.current.clear();
       setEvents([]);
       setMessageCount(null);
+      setSalt(DEFAULT_SALT);
       return;
     }
 
@@ -208,6 +289,7 @@ export function LobbyPersonalityLayer() {
         if (!alive || !result) return;
         const snapshot = result as Snapshot;
         setMessageCount(snapshot.messages.length);
+        setSalt(calculateSalt(snapshot));
         setExpired(new Date(snapshot.lobby.expires_at).getTime() <= Date.now());
 
         const nextPlayers = new Map(snapshot.players.map((player) => [player.guest_id, player]));
@@ -216,13 +298,23 @@ export function LobbyPersonalityLayer() {
           for (const [id, player] of nextPlayers) {
             const old = previousPlayers.get(id);
             if (!old) {
-              pushEvent(`${player.nickname} JOINED ${teamLabel(player.team)}`, player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime", "radio", "join");
+              pushEvent(
+                `${player.nickname} JOINED ${teamLabel(player.team)}`,
+                player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime",
+                "radio",
+                "join",
+              );
             } else if (old.team !== player.team) {
-              pushEvent(`${player.nickname} SWITCHED TO ${teamLabel(player.team)}`, player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime", "radio");
+              pushEvent(
+                `${player.nickname} SWITCHED TO ${teamLabel(player.team)}`,
+                player.team === "blue" ? "blue" : player.team === "red" ? "red" : "lime",
+                "radio",
+              );
             }
           }
           for (const [id, player] of previousPlayers) {
-            if (!nextPlayers.has(id)) pushEvent(`${player.nickname} LEFT THE LOBBY`, "muted", "radio", "leave");
+            if (!nextPlayers.has(id))
+              pushEvent(`${player.nickname} LEFT THE LOBBY`, "muted", "radio", "leave");
           }
         }
         previousPlayersRef.current = nextPlayers;
@@ -231,7 +323,10 @@ export function LobbyPersonalityLayer() {
         if (previousMessagesRef.current) {
           const remoteReply = [...snapshot.messages]
             .reverse()
-            .find((message) => !previousMessagesRef.current?.has(message.id) && message.guest_id !== selfId);
+            .find(
+              (message) =>
+                !previousMessagesRef.current?.has(message.id) && message.guest_id !== selfId,
+            );
           if (remoteReply) playCue("message");
         }
         previousMessagesRef.current = nextMessageIds;
@@ -242,13 +337,24 @@ export function LobbyPersonalityLayer() {
           for (const [key, count] of nextCounts) {
             const before = previousCounts.get(key) ?? 0;
             const [messageId, emoji] = key.split(":") as [string, Reaction["emoji"]];
-            const author = snapshot.messages.find((message) => message.id === messageId)?.nickname ?? "THAT MESSAGE";
+            const author =
+              snapshot.messages.find((message) => message.id === messageId)?.nickname ??
+              "THAT MESSAGE";
 
             for (const milestone of [3, 5]) {
               const milestoneKey = `${key}:${milestone}`;
-              if (count >= milestone && before < milestone && !comboMilestonesRef.current.has(milestoneKey)) {
+              if (
+                count >= milestone &&
+                before < milestone &&
+                !comboMilestonesRef.current.has(milestoneKey)
+              ) {
                 comboMilestonesRef.current.add(milestoneKey);
-                pushEvent(`${comboLabel(emoji, milestone === 5)} · ${author}`, "hot", "spark", "combo");
+                pushEvent(
+                  `${comboLabel(emoji, milestone === 5)} · ${author}`,
+                  "hot",
+                  "spark",
+                  "combo",
+                );
               }
             }
           }
@@ -264,7 +370,11 @@ export function LobbyPersonalityLayer() {
 
         const rematchCount = snapshot.rematchVotes.length;
         const rematchTarget = Math.max(2, Math.ceil(Math.max(snapshot.players.length, 2) / 2));
-        if (previousRematchRef.current !== null && previousRematchRef.current < rematchTarget && rematchCount >= rematchTarget) {
+        if (
+          previousRematchRef.current !== null &&
+          previousRematchRef.current < rematchTarget &&
+          rematchCount >= rematchTarget
+        ) {
           pushEvent(`RUNBACK LOCKED · ${rematchCount} VOTES`, "lime", "zap", "runback");
         }
         previousRematchRef.current = rematchCount;
@@ -324,9 +434,12 @@ export function LobbyPersonalityLayer() {
     }
   }
 
+  const saltClasses = saltTone(salt.label);
+  const filledSegments = Math.max(1, Math.min(8, Math.ceil(Math.max(salt.score, 1) / 4)));
+
   return (
     <>
-      <div className="pointer-events-none fixed bottom-[7.2rem] left-1/2 z-40 flex w-[min(92vw,34rem)] -translate-x-1/2 flex-col items-center gap-2 sm:bottom-[6.6rem]">
+      <div className="pointer-events-none fixed bottom-[10.5rem] left-1/2 z-40 flex w-[min(92vw,34rem)] -translate-x-1/2 flex-col items-center gap-2 sm:bottom-[9.7rem]">
         {events.map((event) => {
           const Icon = event.icon === "zap" ? Zap : event.icon === "spark" ? Sparkles : Radio;
           return (
@@ -341,42 +454,83 @@ export function LobbyPersonalityLayer() {
         })}
       </div>
 
-      {messageCount === 0 && !expired && events.length === 0 && (
-        <div className="fixed bottom-[7.15rem] left-1/2 z-30 w-[min(94vw,38rem)] -translate-x-1/2 border border-border/80 bg-background/94 p-2.5 shadow-2xl backdrop-blur-md sm:bottom-[6.55rem]">
-          <div className="flex items-center gap-2 px-1 pb-2">
-            <Zap className="size-3.5 text-primary" />
-            <span className="font-mono text-[0.58rem] uppercase tracking-[0.14em] text-muted-foreground">Opening shots</span>
-            <span className="ml-auto font-mono text-[0.55rem] uppercase tracking-[0.12em] text-primary">Pick one or type your own</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {OPENERS.map((opener) => (
-              <button
-                key={opener}
-                type="button"
-                onClick={() => prefillComposer(opener)}
-                className="min-h-9 border border-border bg-surface/45 px-2.5 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-primary/[0.06] hover:text-primary"
-              >
-                {opener}
-              </button>
-            ))}
+      {!expired && messageCount !== null && (
+        <div className="fixed bottom-[6.8rem] left-1/2 z-35 w-[min(96vw,58rem)] -translate-x-1/2 px-1 sm:bottom-[6.25rem]">
+          <div
+            className={`flex min-h-12 items-center gap-2 border bg-background/94 p-1.5 shadow-2xl backdrop-blur-md ${saltClasses.border} ${saltClasses.glow}`}
+          >
+            <div
+              className="flex shrink-0 items-center gap-2 border-r border-border/70 px-1.5 pr-2.5"
+              role="status"
+              aria-label={`Salt-O-Meter ${salt.label}, heat score ${Math.min(salt.score, 99)}`}
+              title="Salt-O-Meter reflects the last minute of room messages, reactions and Runback energy."
+            >
+              <div className="hidden min-w-[5.2rem] sm:block">
+                <p className="font-display text-[0.58rem] font-bold uppercase tracking-[0.12em] text-foreground/75">
+                  Salt-O-Meter
+                </p>
+                <div className="mt-1 flex gap-[3px]">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((segment) => (
+                    <span
+                      key={segment}
+                      className={`h-1.5 w-2 skew-x-[-14deg] border ${segment <= filledSegments ? saltClasses.fill : "border-border bg-surface/40"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="text-right sm:text-left">
+                <p
+                  className={`font-display text-[0.68rem] font-bold uppercase tracking-[0.08em] ${saltClasses.text} ${salt.label === "NUCLEAR" ? "signal-pulse" : ""}`}
+                >
+                  {salt.label}
+                </p>
+                <p className="font-mono text-[0.55rem] tabular-nums text-muted-foreground">
+                  {Math.min(salt.score, 99)} heat
+                </p>
+              </div>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 hidden items-center gap-2 px-1 sm:flex">
+                <Zap className="size-3 text-primary" />
+                <span className="font-display text-[0.58rem] font-semibold uppercase tracking-[0.11em] text-foreground/70">
+                  Quick shots
+                </span>
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.1em] text-muted-foreground">
+                  Prefill only
+                </span>
+              </div>
+              <div className="flex min-w-0 gap-1 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {OPENERS.map((opener) => (
+                  <button
+                    key={opener}
+                    type="button"
+                    onClick={() => prefillComposer(opener)}
+                    className="shrink-0 border border-border bg-surface/45 px-2.5 py-1.5 font-display text-[0.58rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-primary/[0.06] hover:text-primary sm:text-[0.62rem]"
+                  >
+                    {opener}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-label={soundOn ? "Turn lobby sounds off" : "Turn lobby sounds on"}
+              title={soundOn ? "Lobby sounds on" : "Lobby sounds off by default"}
+              className={`flex min-h-9 shrink-0 items-center gap-1.5 border px-2.5 font-mono text-[0.56rem] uppercase tracking-[0.08em] transition-all ${
+                soundOn
+                  ? "border-primary/45 bg-primary/[0.08] text-primary"
+                  : "border-border bg-background/70 text-muted-foreground hover:border-primary hover:text-primary"
+              }`}
+            >
+              {soundOn ? <Volume2 className="size-3.5" /> : <VolumeX className="size-3.5" />}
+              <span className="hidden md:inline">Sound {soundOn ? "on" : "off"}</span>
+            </button>
           </div>
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={toggleSound}
-        aria-label={soundOn ? "Turn lobby sounds off" : "Turn lobby sounds on"}
-        title={soundOn ? "Lobby sounds on" : "Lobby sounds off by default"}
-        className={`fixed bottom-[7.25rem] right-3 z-50 flex min-h-9 items-center gap-1.5 border px-2.5 font-mono text-[0.56rem] uppercase tracking-[0.1em] backdrop-blur-md transition-all sm:right-4 ${
-          soundOn
-            ? "border-primary/45 bg-primary/[0.08] text-primary"
-            : "border-border bg-background/88 text-muted-foreground hover:border-primary hover:text-primary"
-        }`}
-      >
-        {soundOn ? <Volume2 className="size-3.5" /> : <VolumeX className="size-3.5" />}
-        <span className="hidden sm:inline">Sound {soundOn ? "on" : "off"}</span>
-      </button>
     </>
   );
 }
