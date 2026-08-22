@@ -419,17 +419,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .home-mascot-orbit {
-    animation: home-orbit 12s linear infinite;
-  }
-
-  .home-mascot-emblem:hover .home-mascot-image {
+  .home-mascot-image:hover {
     transform: translateY(-2px) scale(1.02);
   }
 
   .home-mascot-image {
     transition: transform 180ms ease, filter 180ms ease;
   }
+
 
   .home-process-marker {
     transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
